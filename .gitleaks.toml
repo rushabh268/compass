@@ -1,0 +1,135 @@
+# Reviewed synthetic fixtures only. Each exception requires BOTH the exact
+# file and the exact detected value; other values in these files still fail.
+# Do not generate new exceptions without inspecting the finding and fixture.
+title = "Agent Harness synthetic credential fixtures"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "curl-auth-user"
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/fixtures/dlp/synthetic\\.json\\z"]
+regexes = [
+  "\\Aalice:S3cur3\\-p4ss\\z",
+]
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/adapters/opencode/server\\.test\\.mjs\\z"]
+regexes = [
+  "\\AtK9_mP4\\-vQ7\\.zR2\\z",
+]
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/dlp/classify\\.test\\.mjs\\z"]
+regexes = [
+  "\\AN7v\\-qR2\\-kL9\\-pX4\\z",
+  "\\Ab7Qx_2mN9\\-vR4\\.kL8sP0\\z",
+  "\\Aghp_abcdefghijklmnopqrstuvwxyz1234567890\\z",
+  "\\Aglsa_QWxwaGFCZXRhR2FtbWFEZWx0YQ\\z",
+]
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/dlp/redact\\.test\\.mjs\\z"]
+regexes = [
+  "\\AA9f\\-kL3_pQ7\\-mN2\\z",
+  "\\Aghp_abcdefghijklmnopqrstuvwxyz1234567890\\z",
+  "\\Aglsa_QWxwaGFCZXRhR2FtbWFEZWx0YQ\\z",
+]
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/fixtures/dlp/synthetic\\.json\\z"]
+regexes = [
+  "\\AA9f\\-kL3_pQ7\\-mN2\\z",
+  "\\AN7v\\-qR2\\-kL9\\-pX4\\z",
+  "\\AN7v\\-qR2\\-kL9\\-pX4\\-mN2vR4sT8uV1wX2yZ3\\z",
+  "\\AN7v\\-qR2\\-kL9\\-pX4mN2vR4sT8uV1wX2yZ3\\z",
+  "\\Aghp_A9fkL3pQ7mN2vR4xT8zC6bD0\\z",
+  "\\AtK9_mP4\\-vQ7\\.zR2\\z",
+  "\\Atest\\-live\\-A9f_kL3\\-pQ7\\z",
+]
+
+[[rules]]
+id = "github-pat"
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/dlp/classify\\.test\\.mjs\\z"]
+regexes = [
+  "\\Aghp_abcdefghijklmnopqrstuvwxyz1234567890\\z",
+]
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/dlp/redact\\.test\\.mjs\\z"]
+regexes = [
+  "\\Aghp_abcdefghijklmnopqrstuvwxyz1234567890\\z",
+]
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/fixtures/dlp/synthetic\\.json\\z"]
+regexes = [
+  "\\Aghp_abcdefghijklmnopqrstuvwxyz1234567890\\z",
+]
+
+[[rules]]
+id = "jwt"
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/fixtures/dlp/synthetic\\.json\\z"]
+regexes = [
+  "\\AeyJhbGciOiJIUzI1NiJ9\\.eyJzdWIiOiJzeW50aGV0aWMifQ\\.c2lnbmF0dXJlLWZpeHR1cmU\\z",
+  "\\AeyJhbGciOiJub25lIn0\\.eyJzdWIiOiJzeW50aGV0aWMifQ\\.\\z",
+]
+
+[[rules]]
+id = "private-key"
+
+[[rules.allowlists]]
+description = "Reviewed synthetic regression fixtures"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/fixtures/dlp/synthetic\\.json\\z"]
+regexes = [
+  "\\A\\-\\-\\-\\-\\-BEGIN DSA PRIVATE KEY\\-\\-\\-\\-\\-\\\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\n\\-\\-\\-\\-\\-END DSA PRIVATE KEY\\-\\-\\-\\-\\-\",\\n      \"redacted\": \"\\-\\-\\-\\-\\-BEGIN DSA PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\\\\\n  \\[REDACTED:pem\\-private\\-key\\]\\\\\\\\n  \\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\",\\n      \"line\": 1,\\n      \"column\": 34\\n    \\},\\n    \\{\\n      \"name\": \"JSON private_key with escaped\\-newline PEM body\",\\n      \"ruleID\": \"credential\\-assignment\",\\n      \"text\": \"\\{\\\\\"private_key\\\\\":\\\\\"\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\\\\\n\\[REDACTED:pem\\-private\\-key\\]\\\\\\\\n\\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\",\\n      \"line\": 1,\\n      \"column\": 30\\n    \\},\\n    \\{\\n      \"name\": \"indented JSON escaped\\-newline PEM private key body\",\\n      \"ruleID\": \"pem\\-private\\-key\",\\n      \"text\": \"  \\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\n      QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\n    \\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\n    QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\n    \\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\n    \\[REDACTED:pem\\-private\\-key\\]\\\\n    \\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\",\\n      \"line\": 2,\\n      \"column\": 5\\n    \\},\\n    \\{\\n      \"name\": \"PEM private key body with trailing whitespace\",\\n      \"ruleID\": \"pem\\-private\\-key\",\\n      \"text\": \"\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\n\\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\",\\n      \"redacted\": \"\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\n\\-\\-\\-\\-\\-END RSA PRIVATE KEY\\-\\-\\-\\-\\-\\\\nafter boundary\",\\n      \"redacted\": \"\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\ntrailing private material\",\\n      \"redacted\": \"\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\\\n\\[REDACTED:pem\\-private\\-key\\]  \\\\t\\\\n\\-\\-\\-\\-\\-END PRIVATE KEY\\-\\-\\-\\-\\-\",\\n      \"line\": 2,\\n      \"column\": 1\\n    \\},\\n    \\{\\n      \"name\": \"JSON escaped\\-newline PEM private key body\",\\n      \"ruleID\": \"pem\\-private\\-key\",\\n      \"text\": \"\\-\\-\\-\\-\\-BEGIN PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN RSA PRIVATE KEY\\-\\-\\-\\-\\-\\\\nProc\\-Type: 4,ENCRYPTED\\\\nDEK\\-Info: AES\\-256\\-CBC,0123456789ABCDEF\\\\n\\\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\\\n\\-\\-\\-\\-\\-END RSA PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+  "\\A\\-\\-\\-\\-\\-BEGIN RSA PRIVATE KEY\\-\\-\\-\\-\\-\\\\nProc\\-Type: 4,ENCRYPTED\\\\nDEK\\-Info: AES\\-256\\-CBC,0123456789ABCDEF\\\\n\\\\n\\[REDACTED:pem\\-private\\-key\\]\\\\n\\-\\-\\-\\-\\-END RSA PRIVATE KEY\\-\\-\\-\\-\\-\\z",
+]

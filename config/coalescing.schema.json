@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Harness Event Coalescing Policy",
+  "description": "Closed cooperative coalescing configuration for reducing event volume while preserving critical audit labels.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "enabled",
+    "preserveLabels",
+    "dlpOverride"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version, fixed at 1"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether event coalescing is active"
+    },
+    "windowMs": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 600000,
+      "description": "Time window in milliseconds for coalescing events (default 10 minutes)"
+    },
+    "queueMax": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 256,
+      "default": 256,
+      "description": "Maximum queue size before forcing flush (1-256, default 256)"
+    },
+    "preserveLabels": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "enum": [
+          "lifecycle",
+          "tool",
+          "permission",
+          "error"
+        ]
+      },
+      "description": "Event labels that must never be coalesced; must include all four: lifecycle, tool, permission, error"
+    },
+    "dlpOverride": {
+      "type": "boolean",
+      "const": true,
+      "description": "DLP coalescing override; must be true for cooperative mode"
+    }
+  }
+}

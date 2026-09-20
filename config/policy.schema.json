@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Harness Policy",
+  "description": "Local policy for cooperative agent-harness operation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "mode",
+    "retention",
+    "agentBudgets",
+    "approvedDestinations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "cooperative"
+      ],
+      "default": "cooperative"
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rawPayloads",
+        "redactedMetadataDays",
+        "gateReceiptsDays"
+      ],
+      "properties": {
+        "rawPayloads": {
+          "type": "string",
+          "const": "never"
+        },
+        "redactedMetadataDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gateReceiptsDays": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "agentBudgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxConcurrent",
+        "maxChildren",
+        "maxDepth"
+      ],
+      "properties": {
+        "maxConcurrent": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxChildren": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxDepth": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "approvedDestinations": {
+      "type": "array",
+      "default": [],
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "origin",
+          "operations"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "origin": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://(?:\\[[0-9A-Fa-f:.]+\\]|[^/?#:@\\[\\]]+)(?::(?:[1-9]\\d{0,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5]))?$"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "model",
+                "mcp-read",
+                "mcp-write",
+                "git-push",
+                "jira-write",
+                "confluence-write",
+                "stash-write"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,683 @@
+{
+  "detections": [
+    {
+      "name": "bearer token",
+      "ruleID": "bearer-token",
+      "text": "Authorization: Bearer b7Qx_2mN9-vR4.kL8sP0",
+      "redacted": "Authorization: Bearer [REDACTED:bearer-token]",
+      "line": 1,
+      "column": 23
+    },
+    {
+      "name": "JWT",
+      "ruleID": "jwt",
+      "text": "session = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aGV0aWMifQ.c2lnbmF0dXJlLWZpeHR1cmU",
+      "redacted": "session = [REDACTED:jwt]",
+      "line": 1,
+      "column": 11
+    },
+    {
+      "name": "encrypted JWT",
+      "ruleID": "jwt",
+      "text": "jwe = eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..aXYtZml4dHVyZQ.Y2lwaGVydGV4dC1maXh0dXJl.dGFnLWZpeHR1cmU",
+      "redacted": "jwe = [REDACTED:jwt]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "unsecured JWT",
+      "ruleID": "jwt",
+      "text": "unsigned = eyJhbGciOiJub25lIn0.eyJzdWIiOiJzeW50aGV0aWMifQ.",
+      "redacted": "unsigned = [REDACTED:jwt]",
+      "line": 1,
+      "column": 12
+    },
+    {
+      "name": "PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN PRIVATE KEY-----\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\n-----END PRIVATE KEY-----",
+      "redacted": "-----BEGIN PRIVATE KEY-----\n[REDACTED:pem-private-key]\n-----END PRIVATE KEY-----",
+      "line": 2,
+      "column": 1
+    },
+    {
+      "name": "DSA PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN DSA PRIVATE KEY-----\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\n-----END DSA PRIVATE KEY-----",
+      "redacted": "-----BEGIN DSA PRIVATE KEY-----\n[REDACTED:pem-private-key]\n-----END DSA PRIVATE KEY-----",
+      "line": 2,
+      "column": 1
+    },
+    {
+      "name": "legacy encrypted PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-256-CBC,0123456789ABCDEF\n\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\n-----END RSA PRIVATE KEY-----",
+      "redacted": "-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-256-CBC,0123456789ABCDEF\n\n[REDACTED:pem-private-key]\n-----END RSA PRIVATE KEY-----",
+      "line": 5,
+      "column": 1
+    },
+    {
+      "name": "uniformly indented PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "    -----BEGIN PRIVATE KEY-----\n    QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\n    -----END PRIVATE KEY-----",
+      "redacted": "    -----BEGIN PRIVATE KEY-----\n    [REDACTED:pem-private-key]\n    -----END PRIVATE KEY-----",
+      "line": 2,
+      "column": 5
+    },
+    {
+      "name": "PEM private key body with trailing whitespace",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN PRIVATE KEY-----\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=  \t\n-----END PRIVATE KEY-----",
+      "redacted": "-----BEGIN PRIVATE KEY-----\n[REDACTED:pem-private-key]  \t\n-----END PRIVATE KEY-----",
+      "line": 2,
+      "column": 1
+    },
+    {
+      "name": "JSON escaped-newline PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN PRIVATE KEY-----\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\n-----END PRIVATE KEY-----",
+      "redacted": "-----BEGIN PRIVATE KEY-----\\n[REDACTED:pem-private-key]\\n-----END PRIVATE KEY-----",
+      "line": 1,
+      "column": 30
+    },
+    {
+      "name": "indented JSON escaped-newline PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "  -----BEGIN PRIVATE KEY-----\\n  QUJD\\/0==\\n  -----END PRIVATE KEY-----",
+      "redacted": "  -----BEGIN PRIVATE KEY-----\\n  [REDACTED:pem-private-key]\\n  -----END PRIVATE KEY-----",
+      "line": 1,
+      "column": 34
+    },
+    {
+      "name": "JSON private_key with escaped-newline PEM body",
+      "ruleID": "credential-assignment",
+      "text": "{\"private_key\":\"-----BEGIN PRIVATE KEY-----\\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\\n-----END PRIVATE KEY-----\"}",
+      "redacted": "{\"private_key\":\"[REDACTED:credential-assignment]\"}",
+      "line": 1,
+      "column": 17
+    },
+    {
+      "name": "truncated PEM private key body through EOF",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN PRIVATE KEY-----\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\ntrailing private material",
+      "redacted": "-----BEGIN PRIVATE KEY-----\n[REDACTED:pem-private-key]",
+      "line": 2,
+      "column": 1
+    },
+    {
+      "name": "PEM private key body with mismatched END label",
+      "ruleID": "pem-private-key",
+      "text": "-----BEGIN PRIVATE KEY-----\nQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\n-----END RSA PRIVATE KEY-----\nafter boundary",
+      "redacted": "-----BEGIN PRIVATE KEY-----\n[REDACTED:pem-private-key]\n-----END RSA PRIVATE KEY-----\nafter boundary",
+      "line": 2,
+      "column": 1
+    },
+    {
+      "name": "unevenly indented PEM private key body",
+      "ruleID": "pem-private-key",
+      "text": "  -----BEGIN PRIVATE KEY-----\n      QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo=\n    -----END PRIVATE KEY-----",
+      "redacted": "  -----BEGIN PRIVATE KEY-----\n      [REDACTED:pem-private-key]\n    -----END PRIVATE KEY-----",
+      "line": 2,
+      "column": 7
+    },
+    {
+      "name": "Grafana service account token",
+      "ruleID": "grafana-token",
+      "text": "grafana: glsa_QWxwaGFCZXRhR2FtbWFEZWx0YQ",
+      "redacted": "grafana: [REDACTED:grafana-token]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "password assignment",
+      "ruleID": "credential-assignment",
+      "text": "\"password\": \"N7v\\\"qR2#kL9$pX4\"",
+      "redacted": "\"password\": \"[REDACTED:credential-assignment]\"",
+      "line": 1,
+      "column": 14
+    },
+    {
+      "name": "token assignment",
+      "ruleID": "credential-assignment",
+      "text": "token: 'tK9_mP4-vQ7.zR2'",
+      "redacted": "token: '[REDACTED:credential-assignment]'",
+      "line": 1,
+      "column": 9
+    },
+    {
+      "name": "secret assignment",
+      "ruleID": "credential-assignment",
+      "text": "secret=V4n!sh9_K2p#8q",
+      "redacted": "secret=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 8
+    },
+    {
+      "name": "api_key assignment",
+      "ruleID": "credential-assignment",
+      "text": "api_key = A9f-kL3_pQ7!mN2",
+      "redacted": "api_key = [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 11
+    },
+    {
+      "name": "AWS_SECRET_ACCESS_KEY assignment",
+      "ruleID": "credential-assignment",
+      "text": "AWS_SECRET_ACCESS_KEY=N7v-qR2-kL9-pX4",
+      "redacted": "AWS_SECRET_ACCESS_KEY=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 23
+    },
+    {
+      "name": "GITHUB_TOKEN assignment",
+      "ruleID": "credential-assignment",
+      "text": "GITHUB_TOKEN=ghp_A9fkL3pQ7mN2vR4xT8zC6bD0",
+      "redacted": "GITHUB_TOKEN=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 14
+    },
+    {
+      "name": "camel-case accessToken assignment",
+      "ruleID": "credential-assignment",
+      "text": "accessToken: tK9_mP4-vQ7.zR2",
+      "redacted": "accessToken: [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 14
+    },
+    {
+      "name": "client_secret assignment",
+      "ruleID": "credential-assignment",
+      "text": "client_secret=A9f-kL3_pQ7-mN2",
+      "redacted": "client_secret=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 15
+    },
+    {
+      "name": "camel-case dbPassword assignment",
+      "ruleID": "credential-assignment",
+      "text": "dbPassword=N7v-qR2-kL9-pX4",
+      "redacted": "dbPassword=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 12
+    },
+    {
+      "name": "unterminated double-quoted assignment",
+      "ruleID": "credential-assignment",
+      "text": "password=\"N7v-qR2-kL9-pX4",
+      "redacted": "password=\"[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 11
+    },
+    {
+      "name": "unterminated single-quoted assignment",
+      "ruleID": "credential-assignment",
+      "text": "password='N7v-qR2-kL9-pX4",
+      "redacted": "password='[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 11
+    },
+    {
+      "name": "YAML single-quoted assignment with doubled quote",
+      "ruleID": "credential-assignment",
+      "text": "password: 'N7v''qR2-kL9-pX4'",
+      "redacted": "password: '[REDACTED:credential-assignment]'",
+      "line": 1,
+      "column": 12
+    },
+    {
+      "name": "camel-case APIKey assignment",
+      "ruleID": "credential-assignment",
+      "text": "APIKey=A9f-kL3_pQ7!mN2",
+      "redacted": "APIKey=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 8
+    },
+    {
+      "name": "uppercase APIKEY assignment",
+      "ruleID": "credential-assignment",
+      "text": "APIKEY=A9f-kL3_pQ7!mN2",
+      "redacted": "APIKEY=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 8
+    },
+    {
+      "name": "camel-case APIToken assignment",
+      "ruleID": "credential-assignment",
+      "text": "APIToken=tK9_mP4-vQ7.zR2",
+      "redacted": "APIToken=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "camel-case IDToken assignment",
+      "ruleID": "credential-assignment",
+      "text": "IDToken=tK9_mP4-vQ7.zR2",
+      "redacted": "IDToken=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 9
+    },
+    {
+      "name": "YAML block scalar body",
+      "ruleID": "credential-assignment",
+      "text": "password: |\n  N7v-qR2-kL9-pX4",
+      "redacted": "password: |\n  [REDACTED:credential-assignment]",
+      "line": 2,
+      "column": 3
+    },
+    {
+      "name": "HTTP Basic authorization",
+      "ruleID": "basic-auth",
+      "text": "Authorization: Basic YWxpY2U6Tjd2LXFSMi1rTDktcFg0",
+      "redacted": "Authorization: Basic [REDACTED:basic-auth]",
+      "line": 1,
+      "column": 22
+    },
+    {
+      "name": "AWS AKIA access key ID",
+      "ruleID": "aws-access-key-id",
+      "text": "aws_access_key_id=AKIAIOSFODNN7EXAMPLE",
+      "redacted": "aws_access_key_id=[REDACTED:aws-access-key-id]",
+      "line": 1,
+      "column": 19
+    },
+    {
+      "name": "AWS ASIA access key ID",
+      "ruleID": "aws-access-key-id",
+      "text": "credential ASIAIOSFODNN7EXAMPLE",
+      "redacted": "credential [REDACTED:aws-access-key-id]",
+      "line": 1,
+      "column": 12
+    },
+    {
+      "name": "GitHub ghp token",
+      "ruleID": "github-token",
+      "text": "token ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+      "redacted": "token [REDACTED:github-token]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "GitHub fine-grained token",
+      "ruleID": "github-token",
+      "text": "token github_pat_11AA0synthetic_abcdefghijklmnopqrstuvwxyz1234567890ABCDEFG",
+      "redacted": "token [REDACTED:github-token]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "Slack bot token",
+      "ruleID": "slack-token",
+      "textParts": ["slack=", "xoxb-", "123456789012-", "123456789012-", "abcdefghijklmnopqrstuvwx"],
+      "redacted": "slack=[REDACTED:slack-token]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "weak literal password",
+      "ruleID": "credential-assignment",
+      "text": "password=changeme",
+      "redacted": "password=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "literal example password",
+      "ruleID": "credential-assignment",
+      "text": "password=example",
+      "redacted": "password=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "literal sample API key",
+      "ruleID": "credential-assignment",
+      "text": "api_key=sample",
+      "redacted": "api_key=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 9
+    },
+    {
+      "name": "literal dummy token",
+      "ruleID": "credential-assignment",
+      "text": "token=dummy",
+      "redacted": "token=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "literal password value",
+      "ruleID": "credential-assignment",
+      "text": "password=password",
+      "redacted": "password=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "literal token value",
+      "ruleID": "credential-assignment",
+      "text": "token=token",
+      "redacted": "token=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "literal secret value",
+      "ruleID": "credential-assignment",
+      "text": "secret=secret",
+      "redacted": "secret=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 8
+    },
+    {
+      "name": "multiline JSON quoted assignment",
+      "ruleID": "credential-assignment",
+      "text": "\"password\":\n  \"N7v qR2 kL9 pX4\"",
+      "redacted": "\"password\":\n  \"[REDACTED:credential-assignment]\"",
+      "line": 2,
+      "column": 4
+    },
+    {
+      "name": "multiline JSON key and quoted assignment",
+      "ruleID": "credential-assignment",
+      "text": "\"password\"\n:\n  \"N7v qR2 kL9 pX4\"",
+      "redacted": "\"password\"\n:\n  \"[REDACTED:credential-assignment]\"",
+      "line": 3,
+      "column": 4
+    },
+    {
+      "name": "unquoted YAML assignment containing spaces",
+      "ruleID": "credential-assignment",
+      "text": "password: N7v qR2 kL9 pX4",
+      "redacted": "password: [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 11
+    },
+    {
+      "name": "unquoted password assignment containing comma semicolon and space",
+      "ruleID": "credential-assignment",
+      "text": "password=N7v qR2,kL9;pX4",
+      "redacted": "password=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "example-prefixed credential",
+      "ruleID": "credential-assignment",
+      "text": "password=example-production-N7v9K2p4",
+      "redacted": "password=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "test-prefixed credential",
+      "ruleID": "credential-assignment",
+      "text": "token=test-live-A9f_kL3-pQ7",
+      "redacted": "token=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 7
+    },
+    {
+      "name": "all-x credential outside the exact allowlist",
+      "ruleID": "credential-assignment",
+      "text": "password=xxxxxxxxxxxxxxxx",
+      "redacted": "password=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 10
+    },
+    {
+      "name": "URL userinfo",
+      "ruleID": "url-userinfo",
+      "text": "connect https://alice:S3cur3-p4ss@db.internal/data",
+      "redacted": "connect https://[REDACTED:url-userinfo]@db.internal/data",
+      "line": 1,
+      "column": 17
+    },
+    {
+      "name": "URL userinfo with literal password",
+      "ruleID": "url-userinfo",
+      "text": "connect https://user:password@example.com/resource",
+      "redacted": "connect https://[REDACTED:url-userinfo]@example.com/resource",
+      "line": 1,
+      "column": 17
+    },
+    {
+      "name": "username-only URL userinfo",
+      "ruleID": "url-userinfo",
+      "text": "connect ssh://deploy@db.internal/data",
+      "redacted": "connect ssh://[REDACTED:url-userinfo]@db.internal/data",
+      "line": 1,
+      "column": 15
+    },
+    {
+      "name": "URL userinfo containing a typed token",
+      "ruleID": "url-userinfo",
+      "text": "connect https://alice:glsa_QWxwaGFCZXRhR2FtbWFEZWx0YQ@db.internal/data",
+      "redacted": "connect https://[REDACTED:url-userinfo]@db.internal/data",
+      "line": 1,
+      "column": 17
+    },
+    {
+      "name": "URL userinfo on an example host",
+      "ruleID": "url-userinfo",
+      "text": "connect https://alice:S3cur3-p4ss@example.com/data",
+      "redacted": "connect https://[REDACTED:url-userinfo]@example.com/data",
+      "line": 1,
+      "column": 17
+    },
+    {
+      "name": "URL userinfo containing a raw at sign",
+      "ruleID": "url-userinfo",
+      "text": "connect https://alice:S3cur3-p4ss@segment@db.internal/data",
+      "redacted": "connect https://[REDACTED:url-userinfo]@db.internal/data",
+      "line": 1,
+      "column": 17
+    },
+    {
+      "name": "Cookie with session token",
+      "ruleID": "credential-assignment",
+      "text": "Cookie: sessionId=M7x-kL3_pQ7-mN2-vR4.kL8sP0",
+      "redacted": "Cookie: sessionId=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 19
+    },
+    {
+      "name": "Set-Cookie with session value",
+      "ruleID": "credential-assignment",
+      "text": "Set-Cookie: session=A9f_kL3-pQ7-mN2vR4kL8sP0; Path=/",
+      "redacted": "Set-Cookie: session=[REDACTED:credential-assignment]; Path=/",
+      "line": 1,
+      "column": 21
+    },
+    {
+      "name": "Azure AccountKey connection string",
+      "ruleID": "credential-assignment",
+      "text": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=N7v-qR2-kL9-pX4-mN2vR4sT8uV1wX2yZ3",
+      "redacted": "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=[REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 65
+    },
+    {
+      "name": "Authorization header with ApiKey",
+      "ruleID": "credential-assignment",
+      "text": "Authorization: ApiKey A9f-kL3_pQ7!mN2vR4sT8",
+      "redacted": "Authorization: ApiKey [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 23
+    },
+    {
+      "name": "CLI flag --password",
+      "ruleID": "credential-assignment",
+      "text": "command --password N7v-qR2-kL9-pX4",
+      "redacted": "command --password [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 20
+    },
+    {
+      "name": "CLI flag --token",
+      "ruleID": "credential-assignment",
+      "text": "deploy --token ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+      "redacted": "deploy --token [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 16
+    },
+    {
+      "name": "CLI flag --account-key",
+      "ruleID": "credential-assignment",
+      "text": "azure --account-key A9f-kL3_pQ7-mN2vR4",
+      "redacted": "azure --account-key [REDACTED:credential-assignment]",
+      "line": 1,
+      "column": 21
+    },
+    {
+      "name": "curl with basic auth -u",
+      "ruleID": "url-userinfo",
+      "text": "curl -u alice:S3cur3-p4ss https://api.example.com",
+      "redacted": "curl -u [REDACTED:url-userinfo] https://api.example.com",
+      "line": 1,
+      "column": 9
+    },
+    {
+      "name": "PGPASSWORD environment variable",
+      "ruleID": "credential-assignment",
+      "text": "PGPASSWORD=N7v-qR2-kL9-pX4 psql -h localhost",
+      "redacted": "PGPASSWORD=[REDACTED:credential-assignment] psql -h localhost",
+      "line": 1,
+      "column": 12
+    }
+  ],
+  "negativeExamples": [
+    {
+      "name": "function call getToken",
+      "text": "const token = getToken()",
+      "should": "not detect (function call, not assignment value)"
+    },
+    {
+      "name": "comparison with secret",
+      "text": "if (secret === expectedValue) { }",
+      "should": "not detect (comparison operator, not assignment value)"
+    },
+    {
+      "name": "environment variable reference",
+      "text": "apiKey = process.env.SENSITIVE_KEY",
+      "should": "not detect (env reference, not literal value)"
+    },
+    {
+      "name": "parameter maxToken",
+      "text": "config({ maxToken: 4096 })",
+      "should": "not detect (numeric parameter, not credential)"
+    },
+    {
+      "name": "cancellationToken parameter",
+      "text": "async function doWork(cancellationToken=signal) { }",
+      "should": "not detect (parameter declaration, not credential assignment)"
+    },
+     {
+       "name": "token_type field",
+       "text": "response: { token_type: 'Bearer' }",
+       "should": "not detect token_type (excluded by drift guard)"
+     }
+  ],
+  "credentialKeyDriftGuard": {
+    "accepted": [
+      "secretKey",
+      "privateKey",
+      "signingKey",
+      "encryptionKey",
+      "sessionKey",
+      "database_secret_key",
+      "SERVICE-SIGNING-KEY"
+    ],
+    "rejected": [
+      "clientPasswordHash",
+      "client_password_hash",
+      "token_type",
+      "tokenType",
+      "publicKey",
+      "monkey"
+    ]
+  },
+  "safeExamples": [
+    "token=${TOKEN}",
+    "secret={env:TOKEN}",
+    "password=<redacted>",
+    "password=\"[REDACTED:credential-assignment]\"",
+    "url=https://[REDACTED:url-userinfo]@db.internal/resource",
+    "url=https://user:{env:TOKEN}@db.internal/resource"
+  ],
+  "labeledCorpusCases": {
+    "description": "High-precision curated corpus requiring 100% recall and 0% false-positive rate",
+    "positives": [
+      {
+        "name": "Session token in Cookie header",
+        "text": "Cookie: sessionId=M7x-kL3_pQ7-mN2-vR4.kL8sP0",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "Session token in Set-Cookie",
+        "text": "Set-Cookie: session=A9f_kL3-pQ7-mN2vR4kL8sP0",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "Azure AccountKey",
+        "text": "AccountKey=N7v-qR2-kL9-pX4mN2vR4sT8uV1wX2yZ3",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "Authorization ApiKey header",
+        "text": "Authorization: ApiKey A9f-kL3_pQ7mN2vR4sT8",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "CLI --password flag",
+        "text": "command --password N7v-qR2-kL9-pX4",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "CLI --token flag",
+        "text": "deploy --token ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "CLI --account-key flag",
+        "text": "azure --account-key A9f-kL3_pQ7-mN2",
+        "ruleID": "credential-assignment"
+      },
+      {
+        "name": "curl -u basic auth",
+        "text": "curl -u alice:S3cur3-p4ss https://api.example.com",
+        "ruleID": "url-userinfo"
+      },
+      {
+        "name": "PGPASSWORD environment setup",
+        "text": "PGPASSWORD=N7v-qR2-kL9-pX4",
+        "ruleID": "credential-assignment"
+      }
+    ],
+    "negatives": [
+      {
+        "name": "getToken function call",
+        "text": "const token = getToken()"
+      },
+      {
+        "name": "secret comparison",
+        "text": "if (secret === expectedValue) { }"
+      },
+      {
+        "name": "env reference",
+        "text": "apiKey = process.env.SENSITIVE_KEY"
+      },
+      {
+        "name": "maxToken numeric parameter",
+        "text": "config({ maxToken: 4096 })"
+      },
+      {
+        "name": "cancellationToken parameter",
+        "text": "async function work(cancellationToken=signal) { }"
+      },
+       {
+         "name": "token_type field reference",
+         "text": "response: { token_type: 'Bearer' }"
+       }
+    ]
+  }
+}

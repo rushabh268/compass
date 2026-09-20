@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "windowMs": 600000,
+  "queueMax": 256,
+  "preserveLabels": [
+    "lifecycle",
+    "tool",
+    "permission",
+    "error"
+  ],
+  "dlpOverride": true
+}

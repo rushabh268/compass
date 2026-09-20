@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Harness Grounding Policy",
+  "description": "Closed local configuration for optional Agent Harness grounding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "enabled",
+    "tokenBudget",
+    "deadlineMs",
+    "sources"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "tokenBudget": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384,
+      "default": 256
+    },
+    "deadlineMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 100
+    },
+    "sources": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "project-notes",
+          "repo-comments"
+        ]
+      },
+      "default": []
+    }
+  }
+}

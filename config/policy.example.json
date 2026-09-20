@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "mode": "cooperative",
+  "retention": {
+    "rawPayloads": "never",
+    "redactedMetadataDays": 180,
+    "gateReceiptsDays": 365
+  },
+  "agentBudgets": {
+    "maxConcurrent": 4,
+    "maxChildren": 12,
+    "maxDepth": 1
+  },
+  "approvedDestinations": []
+}

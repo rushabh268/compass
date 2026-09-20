@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "tokenBudget": 256,
+  "deadlineMs": 100,
+  "sources": [
+    "project-notes",
+    "repo-comments"
+  ]
+}
