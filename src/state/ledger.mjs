@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { digest, commitmentDigest, activityDigest, archiveDigest, framedDigest, matchesDigest, verifyRunIntegrity, verifyActivity, verifyRun, verifyArchiveRecord } from "./integrity.mjs";
 
 import { canonicalLabels, createEvent } from "../protocol/event.mjs";
 import { openDatabase, readTransaction } from "./database.mjs";
@@ -16,38 +16,6 @@ function assertRunID(runID) {
   if (typeof runID !== "string" || runID.trim().length === 0 || [...runID].length > 1024) {
     throw new TypeError("runID must be a nonempty string of at most 1024 characters");
   }
-}
-
-function digest(key, previousHMAC, runID, dedupeKey, body) {
-  return framedDigest(key, [previousHMAC, runID, dedupeKey, body]);
-}
-
-function commitmentDigest(key, runID, state, eventCount, headHMAC) {
-  return framedDigest(key, ["run", runID, state, String(eventCount), headHMAC]);
-}
-
-function activityDigest(key, runID, lastEventUnix) {
-  return framedDigest(key, ["activity", runID, String(lastEventUnix)]);
-}
-
-function archiveDigest(key, runID, state, eventCount, headHMAC, commitment, prunedAt, activityHMAC) {
-  return framedDigest(key, ["archive", runID, state, String(eventCount), headHMAC, commitment, String(prunedAt), activityHMAC]);
-}
-
-function framedDigest(key, values) {
-  const hmac = createHmac("sha256", key);
-  for (const value of values) {
-    const bytes = Buffer.from(value, "utf8");
-    const length = Buffer.allocUnsafe(4);
-    length.writeUInt32BE(bytes.length);
-    hmac.update(length).update(bytes);
-  }
-  return hmac.digest("hex");
-}
-
-function matchesDigest(actual, expected) {
-  if (typeof actual !== "string" || !/^[0-9a-f]{64}$/.test(actual)) return false;
-  return timingSafeEqual(Buffer.from(actual, "hex"), Buffer.from(expected, "hex"));
 }
 
 function serverUnixSeconds() {
@@ -177,36 +145,8 @@ export function openLedger({ path, hmacKey } = {}) {
     }
   }
 
-  function verifyRunIntegrity(run, runID, rows) {
-    const expectedCommitment = commitmentDigest(key, runID, run.state, run.event_count, run.head_hmac);
-    if (!Number.isSafeInteger(run.event_count) || run.event_count < 0 ||
-        !matchesDigest(run.commitment_hmac, expectedCommitment) ||
-        !matchesDigest(run.commitment, expectedCommitment)) return false;
 
-    let previousHMAC = "";
-    for (const row of rows) {
-      let event;
-      try {
-        event = JSON.parse(row.body);
-      } catch {
-        return false;
-      }
-      if (event.runID !== row.run_id || event.dedupeKey !== row.dedupe_key) return false;
-      const expected = digest(key, previousHMAC, row.run_id, row.dedupe_key, row.body);
-      if (row.previous_hmac !== previousHMAC || !matchesDigest(row.hmac, expected)) return false;
-      previousHMAC = row.hmac;
-    }
-    return rows.length === run.event_count && previousHMAC === run.head_hmac;
-  }
 
-  function verifyActivity(run, runID) {
-    return Number.isSafeInteger(run.last_event_unix) && run.last_event_unix >= 0 &&
-      matchesDigest(run.activity_hmac, activityDigest(key, runID, run.last_event_unix));
-  }
-
-  function verifyRun(run, runID, rows) {
-    return verifyActivity(run, runID) && verifyRunIntegrity(run, runID, rows);
-  }
 
   function verifyRunHeadIntegrity(run, runID) {
     const expectedCommitment = commitmentDigest(key, runID, run.state, run.event_count, run.head_hmac);
@@ -230,7 +170,7 @@ export function openLedger({ path, hmacKey } = {}) {
   }
 
   function verifyRunHead(run, runID) {
-    return verifyActivity(run, runID) && verifyRunHeadIntegrity(run, runID);
+    return verifyActivity(key, run, runID) && verifyRunHeadIntegrity(run, runID);
   }
 
   function integrityError(runID) {
@@ -248,24 +188,6 @@ export function openLedger({ path, hmacKey } = {}) {
     return { type: decision ? "decision" : "metadata", retentionDays: decision ? decisionDays : metadataDays };
   }
 
-  function verifyArchiveRecord(archive) {
-    if (!archive || !Number.isSafeInteger(archive.event_count) || archive.event_count < 0 ||
-        !Number.isSafeInteger(archive.pruned_at) || archive.pruned_at < 0 ||
-        !Number.isSafeInteger(archive.last_event_unix) || archive.last_event_unix < 0) return false;
-    const commitment = commitmentDigest(key, archive.run_id, archive.state, archive.event_count, archive.head_hmac);
-    const expected = archiveDigest(
-      key,
-      archive.run_id,
-      archive.state,
-      archive.event_count,
-      archive.head_hmac,
-      archive.commitment,
-      archive.pruned_at,
-      archive.activity_hmac,
-    );
-    return matchesDigest(archive.activity_hmac, activityDigest(key, archive.run_id, archive.last_event_unix)) &&
-      matchesDigest(archive.commitment, commitment) && matchesDigest(archive.archive_hmac, expected);
-  }
 
   function verifyLegacyArchiveRecord(archive) {
     if (!archive || !Number.isSafeInteger(archive.event_count) || archive.event_count < 0 ||
@@ -289,7 +211,7 @@ export function openLedger({ path, hmacKey } = {}) {
     transaction(() => {
       for (const run of iterateRuns.iterate()) {
         if (run.activity_hmac !== "") continue;
-        if (!verifyRunIntegrity(run, run.run_id, selectEvents.all(run.run_id))) {
+        if (!verifyRunIntegrity(key, run, run.run_id, selectEvents.all(run.run_id))) {
           migrationInvalidRuns.add(run.run_id);
           continue;
         }
@@ -360,7 +282,7 @@ export function openLedger({ path, hmacKey } = {}) {
       return transaction(() => {
         const run = selectRun.get(runID);
         if (!run) throw new Error(`unknown run: ${runID}`);
-        if (!verifyRun(run, runID, selectEvents.all(runID))) throw integrityError(runID);
+        if (!verifyRun(key, run, runID, selectEvents.all(runID))) throw integrityError(runID);
         assertTransition(run.state, nextState);
         const commitment = commitmentDigest(key, runID, nextState, run.event_count, run.head_hmac);
         updateRun.run(nextState, commitment, commitment, runID);
@@ -409,7 +331,7 @@ export function openLedger({ path, hmacKey } = {}) {
         const run = selectRun.get(runID);
         if (!run) throw new Error(`unknown run: ${runID}`);
         const rows = selectEvents.all(runID);
-        if (!verifyRun(run, runID, rows)) throw integrityError(runID);
+        if (!verifyRun(key, run, runID, rows)) throw integrityError(runID);
         return freeze(rows.map((row) => JSON.parse(row.body)));
       });
     },
@@ -423,7 +345,7 @@ export function openLedger({ path, hmacKey } = {}) {
         const run = selectRun.get(runID);
         if (!run) throw new Error(`unknown run: ${runID}`);
         const expectedCommitment = commitmentDigest(key, runID, run.state, run.event_count, run.head_hmac);
-        if (!verifyActivity(run, runID) || !Number.isSafeInteger(run.event_count) || run.event_count < 0 ||
+        if (!verifyActivity(key, run, runID) || !Number.isSafeInteger(run.event_count) || run.event_count < 0 ||
             !matchesDigest(run.commitment_hmac, expectedCommitment) ||
             !matchesDigest(run.commitment, expectedCommitment)) throw integrityError(runID);
 
@@ -463,7 +385,7 @@ export function openLedger({ path, hmacKey } = {}) {
         const run = selectRun.get(runID);
         if (!run) throw new Error(`unknown run: ${runID}`);
         if (migrationInvalidRuns.has(runID)) throw integrityError(runID);
-        return verifyRun(run, runID, selectEvents.all(runID));
+        return verifyRun(key, run, runID, selectEvents.all(runID));
       });
     },
 
@@ -522,14 +444,14 @@ export function openLedger({ path, hmacKey } = {}) {
         let valid = 0;
         let invalid = 0;
         for (const run of iterateRuns.iterate()) {
-          if (verifyRun(run, run.run_id, selectEvents.all(run.run_id))) valid += 1;
+          if (verifyRun(key, run, run.run_id, selectEvents.all(run.run_id))) valid += 1;
           else invalid += 1;
         }
         // Archived runs are folded into the same valid/invalid counts: a
         // tampered run_archive row must be verified against its own HMAC, not
         // trusted as-is, and must surface here as invalid rather than ignored.
         for (const archive of iterateArchives.iterate()) {
-          if (verifyArchiveRecord(archive)) valid += 1;
+          if (verifyArchiveRecord(key, archive)) valid += 1;
           else invalid += 1;
         }
         return freeze({ valid, invalid });
@@ -544,7 +466,7 @@ export function openLedger({ path, hmacKey } = {}) {
         const run = selectRun.get(runID);
         if (!run) throw new Error(`unknown run: ${runID}`);
         const rows = selectEvents.all(runID);
-        if (!verifyRun(run, runID, rows)) throw integrityError(runID);
+        if (!verifyRun(key, run, runID, rows)) throw integrityError(runID);
         return freeze(retentionPolicy(rows, metadataDays, decisionDays));
       });
     },
@@ -568,7 +490,7 @@ export function openLedger({ path, hmacKey } = {}) {
         for (const run of iterateInactiveRuns.iterate()) {
           if (!Number.isSafeInteger(run.last_event_unix) || run.last_event_unix < 0) throw integrityError(run.run_id);
           const rows = selectEvents.all(run.run_id);
-          if (!verifyRun(run, run.run_id, rows)) throw integrityError(run.run_id);
+          if (!verifyRun(key, run, run.run_id, rows)) throw integrityError(run.run_id);
           eligibleRuns.push({ run, rows });
         }
 
@@ -620,7 +542,7 @@ export function openLedger({ path, hmacKey } = {}) {
 
     verifyArchive(runID) {
       assertRunID(runID);
-      return readTransaction(db, () => verifyArchiveRecord(selectArchive.get(runID)));
+      return readTransaction(db, () => verifyArchiveRecord(key, selectArchive.get(runID)));
     },
 
     retentionStatus({ metadataDays = 180, decisionDays = 365 } = {}) {
@@ -632,7 +554,7 @@ export function openLedger({ path, hmacKey } = {}) {
         let metadataRuns = 0;
         for (const run of iterateRuns.iterate()) {
           const rows = selectEvents.all(run.run_id);
-          if (!verifyRun(run, run.run_id, rows)) throw integrityError(run.run_id);
+          if (!verifyRun(key, run, run.run_id, rows)) throw integrityError(run.run_id);
           for (const row of rows) activeBytes += Buffer.byteLength(row.body);
           if (hasDecision(rows)) decisionRuns += 1;
           else metadataRuns += 1;
@@ -646,7 +568,7 @@ export function openLedger({ path, hmacKey } = {}) {
           archivedBytes += Buffer.byteLength(JSON.stringify(archive));
           // Verify each archive's HMAC rather than trusting the stored row, so
           // tampering is reported instead of silently counted as healthy.
-          if (verifyArchiveRecord(archive)) archiveValid += 1;
+          if (verifyArchiveRecord(key, archive)) archiveValid += 1;
           else archiveInvalid += 1;
         }
         return freeze({

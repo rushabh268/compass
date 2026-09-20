@@ -52,6 +52,8 @@ const summaryCounterFields = Object.freeze([
   "sessionStatus", "sessionDiff", "todoUpdate", "noise", "queueFull",
 ]);
 const summaryCounterFieldSet = new Set(summaryCounterFields);
+// GroundingInjection may target sessionHMAC while retaining its monthly runID.
+// Targetless historical events remain monthly/unassigned; no new event-v1 field.
 // GroundingInjection metadata is a CLOSED, structured summary of what grounding
 // content was injected into a chat turn. It never carries raw brief text,
 // vault contents, comment bodies, cwd, or branch names -- only bounded

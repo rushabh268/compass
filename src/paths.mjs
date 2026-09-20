@@ -106,3 +106,21 @@ export async function readAuthKeyFile(path) {
 export async function setSocketMode(path) {
   await chmod(path, 0o600);
 }
+
+// Explicit companion-owned state only; no bootstrap or native configuration.
+export async function provisionReaderKey(stateDirectory) {
+ if(typeof stateDirectory!=='string'||!stateDirectory)throw new TypeError('state directory is required');
+ const directory=await rejectSymlinkComponents(stateDirectory,true);
+ await mkdir(directory,{recursive:true,mode:0o700});
+ const parent=await lstat(directory);
+ if(!parent.isDirectory()||parent.uid!==process.getuid()||(parent.mode&0o777)!==0o700)throw new Error('reader state directory must be owner-only');
+ const path=join(directory,'reader.key');
+ let handle;
+ try{
+  handle=await open(path,'wx',0o600);
+  const {randomBytes}=await import('node:crypto');
+  const key=randomBytes(32);
+  try{await handle.writeFile(key);await handle.sync();}finally{key.fill(0);}
+ }catch(error){if(error.code!=='EEXIST')throw error;const existing=await readAuthKeyFile(path);existing.fill(0);}finally{await handle?.close();}
+ return path;
+}

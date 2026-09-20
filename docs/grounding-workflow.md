@@ -85,3 +85,15 @@ effort. The dashboard's counts cover a bounded recent window, not lifetime total
 - [Claude Code hooks](https://code.claude.com/docs/en/hooks)
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks)
 - [OpenCode plugins](https://opencode.ai/docs/plugins/)
+
+## Optional future session targeting
+
+Grounding keeps monthly run IDs for retention. When a native callback provides
+an explicit valid session/agent identity, `sessionHMAC` identifies that target and
+the event/dedupe identity includes its hash. No-target events retain the exact
+historical bytes and remain unassigned; monthly totals cannot establish session
+usage. Claude and Codex use the same subject selector as their telemetry adapters.
+OpenCode's system-transform callback carries its optional `sessionID` into each
+immutable injection entry; simultaneous sessions do not share a current-session
+variable. Missing identity stays unassigned. This instrumentation does not activate
+hooks or change native configuration.

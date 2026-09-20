@@ -696,3 +696,12 @@ test("matchInitiative keeps ticket, folder-overlap, and no-match behavior", () =
   assert.equal(matchInitiative("", "/project-notes", fs), null);
   assert.equal(matchInitiative(undefined, "/project-notes", fs), null);
 });
+
+test('concurrent injection ring entries retain their own optional session identity', async () => {
+ const harness=makeHarness({redact:text=>({text})});await warmImmediately(harness);
+ for(const id of ['synthetic-root-a','synthetic-child-a','synthetic-root-b',undefined,''])harness.cache.recordInjection(undefined,id);
+ const entries=harness.cache.drainMetadata();
+ assert.deepEqual(entries.map(entry=>entry.target?.nativeID),['synthetic-root-a','synthetic-child-a','synthetic-root-b',undefined,undefined]);
+ assert.ok(Object.isFrozen(entries[0]));assert.ok(Object.isFrozen(entries[0].target));
+ harness.cache.stop();
+});

@@ -88,8 +88,13 @@ function xmlText(value) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
 }
 
-export function renderSupervisorWrapper(targets) {
-  return `#!/bin/sh\nexec ${[targets.runtimeNodeBin, targets.cliEntry, "serve", "--socket", targets.socket, "--key-file", targets.keyFile, "--ledger", targets.ledger].map(shellQuote).join(" ")}\n`;
+// The legacy form is retained solely to recognize unmodified installed wrappers
+// during companion-only upgrades; ordinary installs always render the optional reader.
+export function renderSupervisorWrapper(targets, { legacy = false } = {}) {
+  const command = [targets.runtimeNodeBin, targets.cliEntry, "serve", "--socket", targets.socket, "--key-file", targets.keyFile, "--ledger", targets.ledger].map(shellQuote).join(" ");
+  if (legacy) return `#!/bin/sh\nexec ${command}\n`;
+  const readerKey = shellQuote(join(targets.stateDir, "reader.key"));
+  return `#!/bin/sh\nset -- ${command}\nif [ -e ${readerKey} ]; then\n  set -- "$@" '--reader-key-file' ${readerKey}\nfi\nexec "$@"\n`;
 }
 
 export function renderLaunchdPlist(targets) {

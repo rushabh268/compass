@@ -43,8 +43,23 @@ async function main() {
     import("./dashboard.mjs"),
   ]);
   const [command, ...args] = process.argv.slice(2);
+  if (command === "companion-enable") {
+    const flags = options(args, new Set(["--home", "--state-dir", "--runtime-dir"]));
+    if (!flags["--home"] || !flags["--state-dir"]) throw new Error("companion-enable requires --home and --state-dir");
+    const { enableCompanion } = await import("../install/companion.mjs");
+    const result = await enableCompanion({ home: flags["--home"], stateDir: flags["--state-dir"], runtimeDir: flags["--runtime-dir"] });
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    return;
+  }
+  if (command === "reader-key") {
+    const flags = options(args, new Set(["--state-dir"]));
+    const { provisionReaderKey } = await import("./paths.mjs");
+    const path = await provisionReaderKey(flags["--state-dir"]);
+    process.stdout.write(`${JSON.stringify({ readerKeyFile: path })}\n`);
+    return;
+  }
   const allowed = command === "serve" || command === "canary"
-    ? new Set(["--socket", "--key-file", "--ledger"])
+    ? new Set(["--socket", "--key-file", "--ledger", ...(command === "serve" ? ["--reader-key-file"] : [])])
     : command === "health" || command === "status" || command === "verify" || command === "retention-status" ? new Set(["--socket", "--key-file"])
     : command === "prune" ? new Set(["--socket", "--key-file", "--dry-run", "--older-than-unix", "--max-runs"])
     : command === "dashboard" ? new Set(["--socket", "--key-file", "--port", "--refresh-seconds"])
@@ -118,12 +133,14 @@ async function main() {
     }
     const ledger = openLedger({ path: flags["--ledger"], hmacKey: authKey });
     let supervisor;
+    let readerKey;
     try {
-      supervisor = await startSupervisor({ socketPath: flags["--socket"], authKey, ledger });
+      readerKey = flags["--reader-key-file"] ? await readAuthKeyFile(flags["--reader-key-file"]) : undefined;
+      supervisor = await startSupervisor({ socketPath: flags["--socket"], authKey, readerKey, ledger, ledgerPath: flags["--ledger"] });
     } catch (error) {
       ledger.close();
       throw error;
-    }
+    } finally { readerKey?.fill(0); }
     const shutdown = async () => {
       process.removeAllListeners("SIGINT");
       process.removeAllListeners("SIGTERM");

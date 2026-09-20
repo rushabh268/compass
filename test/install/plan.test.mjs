@@ -207,11 +207,10 @@ test("renderSupervisorWrapper emits one shell exec for the planned runtime and C
   const lines = wrapper.trimEnd().split("\n");
 
   assert.equal(lines[0], "#!/bin/sh");
-  assert.equal(lines.length, 2);
-  assert.equal(
-    lines[1],
-    `exec '${targets.runtimeNodeBin}' '${targets.cliEntry}' 'serve' '--socket' '${targets.socket}' '--key-file' '${targets.keyFile}' '--ledger' '${targets.ledger}'`,
-  );
+  assert.equal(lines.at(-1), 'exec "$@"');
+  assert.match(wrapper, /--reader-key-file/);
+  assert.equal(wrapper.includes(join(targets.stateDir, "reader.key")), true);
+  assert.equal(lines.filter(line => line.startsWith("exec ")).length, 1);
   for (const path of [targets.runtimeNodeBin, targets.cliEntry, targets.socket, targets.keyFile, targets.ledger]) {
     assert.equal(wrapper.includes(path), true);
   }

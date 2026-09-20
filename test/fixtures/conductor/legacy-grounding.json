@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "sources": [],
+    "bytes": 0,
+    "approxTokens": 0,
+    "matchReason": "none",
+    "commentFiles": 0,
+    "latencyMs": 0
+  },
+  "options": {
+    "now": "2026-09-20T00:00:00Z",
+    "occurrenceID": "synthetic-legacy",
+    "retentionEpoch": "2026-09"
+  },
+  "keyHex": "4141414141414141414141414141414141414141414141414141414141414141",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventID": "2a15e1f62847a3a1bca99f11db36f9509ea66a01d69ab59a8c7a2cd667ea199d",
+      "runID": "82d440297179e6304f76e20e3177825dd0b593e9091de5c4cff3dd2151a2b5d8",
+      "platform": "claude",
+      "sessionHMAC": "2238bc5bb563c176bd5461fb10cbae4d8fb97191706c3aa367142143711082bf",
+      "eventType": "GroundingInjection",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "dedupeKey": "c3c91a8ae4318f0a21707ec2c2dc76a9cd030cc168dfb6fbd03340019bb2704b",
+      "metadata": {
+        "sources": [],
+        "matchReason": "none",
+        "bytes": 0,
+        "approxTokens": 0,
+        "commentFiles": 0,
+        "latencyMs": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventID": "df518fb2d8695b9bd7788ebd1f23e7018823cfbec2fec0f3c9b8fd05cc48bc5f",
+      "runID": "51ede996e02ea96a485f4c8fa54c8df700517c9eb3b326da867e0806cc4f2549",
+      "platform": "codex",
+      "sessionHMAC": "46a341d0d3a45e61af83b70c6c85311916b390012e06ccbe8fe51f6ef25ac2ca",
+      "eventType": "GroundingInjection",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "dedupeKey": "22e7802617a8018bc3ae7cfd8bb52db09843dc1318da7ed84e1474bbdbd1ac50",
+      "metadata": {
+        "sources": [],
+        "matchReason": "none",
+        "bytes": 0,
+        "approxTokens": 0,
+        "commentFiles": 0,
+        "latencyMs": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventID": "85fc4bc2b0c38aabe9a7ecb061cdf943d0c136ca2b85f767d9cad7f364f56b2d",
+      "runID": "3a73ad1f10c2e15cca7502a6013eae5f6d0943fe59694a3daea854e30dfb8ca3",
+      "platform": "opencode",
+      "sessionHMAC": "4d27cda05701f866b5690ca09cf475966ad72a8a05358210d49b279139a8d720",
+      "eventType": "GroundingInjection",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "dedupeKey": "8799b2d8b52edbb52cc3a120d0b27b17df04dc39317b36df928789a50c09e259",
+      "metadata": {
+        "sources": [],
+        "matchReason": "none",
+        "bytes": 0,
+        "approxTokens": 0,
+        "commentFiles": 0,
+        "latencyMs": 0
+      }
+    }
+  ]
+}

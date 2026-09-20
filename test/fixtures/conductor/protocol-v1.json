@@ -1,0 +1,114 @@
+{
+  "readerKeyHex": "4242424242424242424242424242424242424242424242424242424242424242",
+  "syntheticWriterKeyHex": "4141414141414141414141414141414141414141414141414141414141414141",
+  "requests": [
+    {
+      "request": {
+        "version": 1,
+        "id": "synthetic-claude",
+        "method": "beginSessionEvidence",
+        "params": {
+          "version": 1,
+          "platform": "claude",
+          "rootSessionID": "synthetic-root",
+          "subject": {
+            "kind": "agent",
+            "nativeID": "synthetic-child"
+          }
+        },
+        "auth": "3939c6c4e153a0a1632abcbc34dff85e557000a43779b661b8acd200b1a9f39e"
+      },
+      "frameHex": "000001137b2276657273696f6e223a312c226964223a2273796e7468657469632d636c61756465222c226d6574686f64223a22626567696e53657373696f6e45766964656e6365222c22706172616d73223a7b2276657273696f6e223a312c22706c6174666f726d223a22636c61756465222c22726f6f7453657373696f6e4944223a2273796e7468657469632d726f6f74222c227375626a656374223a7b226b696e64223a226167656e74222c226e61746976654944223a2273796e7468657469632d6368696c64227d7d2c2261757468223a2233393339633663346531353361306131363332616263626333346466663835653535373030306134333737396236363162386163643230306231613966333965227d",
+      "identity": {
+        "platform": "claude",
+        "kind": "agent",
+        "runID": "72852d5e437cfd4a1f74589fd70010ee12d006ef7003dad951f42f4dc737fe2a",
+        "subjectHMAC": "ce77ad3763569c39f7493d3afa84a80a717d7537a601934b33149f53f8302fe0",
+        "rootHMAC": "bb910a7fdda6b15c2562cd63981f34baf04ee3958dbe6ba8c615f6b91501455c"
+      }
+    },
+    {
+      "request": {
+        "version": 1,
+        "id": "synthetic-codex",
+        "method": "beginSessionEvidence",
+        "params": {
+          "version": 1,
+          "platform": "codex",
+          "rootSessionID": "synthetic-root",
+          "subject": {
+            "kind": "agent",
+            "nativeID": "synthetic-child"
+          }
+        },
+        "auth": "9b607bbe20ff78a7cb615a0cf20c569117b61f96b7e35877b587ef189445348d"
+      },
+      "frameHex": "000001117b2276657273696f6e223a312c226964223a2273796e7468657469632d636f646578222c226d6574686f64223a22626567696e53657373696f6e45766964656e6365222c22706172616d73223a7b2276657273696f6e223a312c22706c6174666f726d223a22636f646578222c22726f6f7453657373696f6e4944223a2273796e7468657469632d726f6f74222c227375626a656374223a7b226b696e64223a226167656e74222c226e61746976654944223a2273796e7468657469632d6368696c64227d7d2c2261757468223a2239623630376262653230666637386137636236313561306366323063353639313137623631663936623765333538373762353837656631383934343533343864227d",
+      "identity": {
+        "platform": "codex",
+        "kind": "agent",
+        "runID": "e40a20c8dc6fbc064598fe36c3a8e6a5944463977e2ebb96c58abbdadd35abaa",
+        "subjectHMAC": "47d91e14ef56680bdd0f639719d93fef5b5b76b1411a4bb1f19aa685e3b2a5e9",
+        "rootHMAC": "62cfd9f60c4d769ff2b33b9afaabb25e07704ba89f0d60969ad9d4f7305227b3"
+      }
+    },
+    {
+      "request": {
+        "version": 1,
+        "id": "synthetic-opencode",
+        "method": "beginSessionEvidence",
+        "params": {
+          "version": 1,
+          "platform": "opencode",
+          "rootSessionID": "synthetic-root",
+          "subject": {
+            "kind": "session",
+            "nativeID": "synthetic-child"
+          }
+        },
+        "auth": "317298ca9e90bd73da7500fc9c6630a7c56e684bf6a3f9d9f7f3fa0780e2f988"
+      },
+      "frameHex": "000001197b2276657273696f6e223a312c226964223a2273796e7468657469632d6f70656e636f6465222c226d6574686f64223a22626567696e53657373696f6e45766964656e6365222c22706172616d73223a7b2276657273696f6e223a312c22706c6174666f726d223a226f70656e636f6465222c22726f6f7453657373696f6e4944223a2273796e7468657469632d726f6f74222c227375626a656374223a7b226b696e64223a2273657373696f6e222c226e61746976654944223a2273796e7468657469632d6368696c64227d7d2c2261757468223a2233313732393863613965393062643733646137353030666339633636333061376335366536383462663661336639643966376633666130373830653266393838227d",
+      "identity": {
+        "platform": "opencode",
+        "kind": "session",
+        "runID": "41befe25f9265246897363babe6f59ade07bda90a4e6789ef531345cc31382d1",
+        "subjectHMAC": "05b958f7cdb991861231118612badeb7e7706390c654484a8ec6adb6ec44a102",
+        "rootHMAC": "20947c1692d81bb040632c5de300672a812999aa22711b4668338aee6ae779c1"
+      }
+    }
+  ],
+  "readyResponse": {
+    "version": 1,
+    "id": "synthetic-claude",
+    "result": {
+      "version": 1,
+      "state": "ready",
+      "snapshotID": "synthetic-snapshot",
+      "head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "eventCount": 1,
+      "expiresAt": 1790000000000,
+      "summary": {
+        "events": 1,
+        "grounding": 0
+      },
+      "groundingState": "available",
+      "relationship": "direct",
+      "events": [
+        {
+          "schemaVersion": 1,
+          "eventID": "87bdf41425c62cae2448e3fcde5c0f2ee1fedbe76729b7e8010aa3ebc8e64b81",
+          "runID": "72852d5e437cfd4a1f74589fd70010ee12d006ef7003dad951f42f4dc737fe2a",
+          "platform": "claude",
+          "sessionHMAC": "ce77ad3763569c39f7493d3afa84a80a717d7537a601934b33149f53f8302fe0",
+          "eventType": "SubagentStart",
+          "timestamp": "2026-09-20T00:00:00.000Z",
+          "dedupeKey": "cd22af5440a3d52853ab5cc9cac753bb5a8a9d402e0ee4018b73b6b1889eaa7b",
+          "adapterVersion": "1",
+          "parentSessionHMAC": "bb910a7fdda6b15c2562cd63981f34baf04ee3958dbe6ba8c615f6b91501455c"
+        }
+      ],
+      "nextCursor": null
+    }
+  }
+}

@@ -31,7 +31,7 @@ function parseArgs(args) {
     if (seen.has(argument)) throw new Error(`duplicate option: ${argument}`);
     seen.add(argument);
     const key = argument.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-    if (["--home", "--codex-home"].includes(argument)) {
+    if (["--home", "--codex-home", "--state-dir"].includes(argument)) {
       if (!args[index + 1] || args[index + 1].startsWith("--")) throw new Error(`${argument} requires a value`);
       options[key] = args[++index];
     } else if (["--dry-run", "--purge-state", "--skip-launchd"].includes(argument)) options[key] = true;
@@ -59,6 +59,7 @@ async function removalEdit(path, transform) {
 export async function run({
   home = os.homedir(),
   repoRoot = repositoryRoot,
+  stateDir,
   codexHome = process.env.CODEX_HOME || join(home, ".codex"),
   runCommand = commandRunner,
   dryRun = false,
@@ -67,7 +68,7 @@ export async function run({
 } = {}) {
   if (process.platform !== "darwin") throw new Error("compass uninstall requires macOS");
   assertSupportedRuntime();
-  const targets = resolveTargets({ home, repoRoot, codexHome });
+  const targets = resolveTargets({ home, repoRoot, codexHome, stateDir });
   await preflightDirectory(targets.stateDir, { mode: 0o700 });
   const manifestText = await fileText(targets.installationManifest, { mode: 0o600, maxBytes: 1024 * 1024 });
   const manifest = parseManifest(manifestText);

@@ -1,11 +1,17 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { createEvidenceService } from "../evidence/service.mjs";
+import { evidenceIdentity } from "../identity.mjs";
 import { lstat, unlink } from "node:fs/promises";
 import net from "node:net";
 
 import { authenticateRequest, createResponse, encodeFrame, FrameDecoder, parseRequest } from "../protocol/rpc.mjs";
 import { prepareSocketPath, removeStaleSocket, setSocketMode } from "../paths.mjs";
 
+const READER_METHODS = new Set(["health", "status", "metrics", "retentionStatus", "beginSessionEvidence", "continueSessionEvidence"]);
 const methodParams = new Map([
   ["health", []],
+  ["beginSessionEvidence", ["version", "platform", "rootSessionID", "subject"]],
+  ["continueSessionEvidence", ["version", "cursor"]],
   ["ensureRun", ["runID"]],
   ["createRun", ["runID"]],
   ["transitionRun", ["runID", "nextState"]],
@@ -32,6 +38,8 @@ function validParams(method, params) {
   const allowed = methodParams.get(method);
   if (!allowed) return false;
   const fields = Object.keys(params);
+  if (method === "beginSessionEvidence") return params.version === 1 && typeof params.platform === "string" && typeof params.rootSessionID === "string" && fields.every(field => allowed.includes(field));
+  if (method === "continueSessionEvidence") return params.version === 1 && typeof params.cursor === "string" && fields.length === 2;
   if (method === "listEvents") {
     return Object.hasOwn(params, "runID") && fields.every((field) => allowed.includes(field)) &&
       (!Object.hasOwn(params, "cursor") || (Number.isSafeInteger(params.cursor) && params.cursor >= 0)) &&
@@ -109,7 +117,7 @@ function listEventsPage(id, events, { cursor = 0, limit = DEFAULT_LIST_LIMIT }) 
   return { events: page, nextCursor: next < events.length ? next : null };
 }
 
-export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout = DEFAULT_IDLE_TIMEOUT, maxConnections = DEFAULT_MAX_CONNECTIONS, maxMutationReplayEntries = DEFAULT_MAX_MUTATION_REPLAY_ENTRIES, metricsCacheTTL = 10_000, now = Date.now } = {}) {
+export async function startSupervisor({ socketPath, authKey, readerKey, ledger, ledgerPath, idleTimeout = DEFAULT_IDLE_TIMEOUT, maxConnections = DEFAULT_MAX_CONNECTIONS, maxMutationReplayEntries = DEFAULT_MAX_MUTATION_REPLAY_ENTRIES, metricsCacheTTL = 10_000, now = Date.now } = {}) {
   if (!Buffer.isBuffer(authKey) || authKey.length < 32) throw new TypeError("authKey must be a Buffer of at least 32 bytes");
   if (ledger === null || typeof ledger !== "object") throw new TypeError("ledger is required");
   if (!Number.isFinite(idleTimeout) || idleTimeout <= 0) throw new TypeError("idleTimeout must be positive");
@@ -117,9 +125,12 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
   if (!Number.isSafeInteger(maxMutationReplayEntries) || maxMutationReplayEntries <= 0) throw new TypeError("maxMutationReplayEntries must be a positive integer");
   if (!Number.isSafeInteger(metricsCacheTTL) || metricsCacheTTL <= 0) metricsCacheTTL = 10_000;
   if (typeof now !== "function") now = Date.now;
+  if (readerKey !== undefined && (!Buffer.isBuffer(readerKey) || readerKey.length < 32 || timingSafeEqual(createHmac("sha256", readerKey).update("compass-role-separation").digest(), createHmac("sha256", authKey).update("compass-role-separation").digest()))) throw new TypeError("readerKey must be distinct and at least 32 bytes");
+  const reader = readerKey && Buffer.from(readerKey);
   const key = Buffer.from(authKey);
   const path = await prepareSocketPath(socketPath);
   await removeStaleSocket(path);
+  const evidence = ledgerPath ? createEvidenceService({ path: ledgerPath, key }) : undefined;
 
   const sockets = new Set();
   const readReplay = new Map();
@@ -139,7 +150,7 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
     return cachedMetrics;
   }
 
-  async function execute(request) {
+  async function execute(request, readerRole) {
     let response;
     if (!methodParams.has(request.method)) {
       response = createResponse({ id: request.id, error: { code: "NOT_FOUND", message: "unknown method" } });
@@ -147,10 +158,15 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
       response = createResponse({ id: request.id, error: { code: "INVALID_ARGUMENT", message: "invalid method parameters" } });
     } else {
       try {
-        const result = await dispatch(ledger, request.method, request.params, request.id, metrics);
+        if (request.method === "beginSessionEvidence") evidenceIdentity(request.params, key);
+        const result = request.method === "beginSessionEvidence" ? await evidence?.begin(request.params) ?? { version: 1, state: "unavailable" } :
+          request.method === "continueSessionEvidence" ? await evidence?.continue(request.params) ?? { version: 1, state: "unavailable" } :
+          request.method === "retentionStatus" && readerRole ? await evidence?.retentionStatus() ?? { version: 1, state: "unavailable" } :
+          request.method === "health" && readerRole ? { ok: true, capabilities: { sessionEvidence: evidence ? 1 : 0, readerRole: true } } :
+          await dispatch(ledger, request.method, request.params, request.id, metrics);
         response = createResponse({ id: request.id, result });
-      } catch {
-        response = createResponse({ id: request.id, error: { code: "FAILED", message: "request failed" } });
+      } catch (error) {
+        response = createResponse({ id: request.id, error: { code: error instanceof TypeError ? "INVALID_ARGUMENT" : "FAILED", message: "request failed" } });
       }
     }
     try {
@@ -187,11 +203,15 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
           try {
             const request = parseRequest(input);
             id = request.id;
-            if (!authenticateRequest(request, key)) {
+            const writerRole = authenticateRequest(request, key);
+            const readerRole = !writerRole && reader && authenticateRequest(request, reader);
+            if (!writerRole && !readerRole) {
               response = createResponse({ id, error: { code: "UNAUTHENTICATED", message: "authentication failed" } });
+            } else if (readerRole && !READER_METHODS.has(request.method)) {
+              response = createResponse({ id, error: { code: "PERMISSION_DENIED", message: "reader method denied" } });
             } else {
               const previous = mutationReplay.get(id) ?? idempotentReplay.get(id) ??
-                (request.method === "metrics" ? undefined : readReplay.get(id));
+                (["metrics", "retentionStatus", "beginSessionEvidence", "continueSessionEvidence"].includes(request.method) ? undefined : readReplay.get(id));
               if (previous) {
                 response = previous.auth === request.auth
                   ? previous.response
@@ -209,13 +229,13 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
                   if (protectedMutation && mutationReplay.size + mutationsInFlight >= maxMutationReplayEntries) {
                     response = createResponse({ id, error: { code: "RESOURCE_EXHAUSTED", message: "mutation replay capacity exhausted" } });
                   } else {
-                    const operation = execute(request);
+                    const operation = execute(request, readerRole);
                     if (protectedMutation) mutationsInFlight += 1;
                     inFlight.set(id, { auth: request.auth, response: operation });
                     try {
                       response = await operation;
                       const cache = protectedMutation ? mutationReplay : mutation ? idempotentReplay :
-                        request.method === "metrics" ? undefined : readReplay;
+                        ["metrics", "retentionStatus", "beginSessionEvidence", "continueSessionEvidence"].includes(request.method) ? undefined : readReplay;
                       if (cache && (!response.error || CACHEABLE_ERROR_CODES.has(response.error.code))) {
                         cache.set(id, { auth: request.auth, response });
                         const cacheLimit = mutation ? maxMutationReplayEntries : MAX_READ_REPLAY_ENTRIES;
@@ -257,6 +277,7 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
       async close() {
         if (closed) return;
         closed = true;
+        await evidence?.close();
         for (const socket of sockets) socket.destroy();
         await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
         try {
@@ -265,13 +286,16 @@ export async function startSupervisor({ socketPath, authKey, ledger, idleTimeout
         } catch (error) {
           if (error.code !== "ENOENT") throw error;
         } finally {
+          reader?.fill(0);
           key.fill(0);
         }
       },
     });
   } catch (error) {
     server.close();
+    reader?.fill(0);
     key.fill(0);
+    await evidence?.close();
     throw error;
   }
 }

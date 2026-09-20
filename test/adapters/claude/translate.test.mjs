@@ -55,7 +55,7 @@ test("translates a Claude hook into a deterministic closed event envelope", () =
 
 test("translates every supported Claude hook event unchanged", () => {
   for (const eventType of supportedHookEvents) {
-    const event = translateClaudeHook(payload({ hook_event_name: eventType }), { authKey, now });
+    const event = translateClaudeHook(payload({ hook_event_name: eventType, ...(["SubagentStart", "SubagentStop"].includes(eventType) ? { agent_id: "synthetic-agent" } : {}) }), { authKey, now });
     assert.equal(event.eventType, eventType);
   }
 });
@@ -196,4 +196,8 @@ test("uses HMAC-SHA256 rather than an unhashed native identifier", () => {
   const event = translateClaudeHook(payload(), { authKey, now });
   const rawDigest = createHmac("sha256", authKey).update("native-session").digest("hex");
   assert.notEqual(event.sessionHMAC, rawDigest, "identifiers must be domain separated");
+});
+
+test("incomplete child callbacks cannot be attributed to their parent", () => {
+  for (const hook_event_name of ["SubagentStart", "SubagentStop"]) assert.throws(() => translateClaudeHook(payload({ hook_event_name }), { authKey, now }), /subject/);
 });

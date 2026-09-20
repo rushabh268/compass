@@ -154,3 +154,16 @@ test('native linked and nested worktrees resolve notes from the main checkout', 
     }
   }
 });
+
+test('missing child identity never assigns grounding to parent session',async t=>{
+ const f=await fixture(t),ledger=openLedger({path:join(f.root,'ledger/events.sqlite'),hmacKey:key}),socketPath=join(f.root,'private/rpc');
+ const supervisor=await startSupervisor({socketPath,authKey:key,ledger});t.after(async()=>{await supervisor.close();ledger.close();});
+ const shared=await collectGrounding({worktree:f.repo,loadConfig:async()=>policy});
+ for(const platform of ['claude','codex']){
+  const result=await run(platform,{cwd:f.repo,session_id:'synthetic-parent',hook_event_name:'SubagentStart'},{...f.env,COMPASS_SOCKET:socketPath});
+  clean(result);assert.match(result.stdout,/NATIVE-SOURCE-PRIVATE-BODY/);
+  const unassigned=buildGroundingEvent(shared.metadata,{platform,hmacKey:key});
+  const events=ledger.listEvents(unassigned.runID);
+  assert.equal(events.length,1);assert.equal(events[0].sessionHMAC,unassigned.sessionHMAC);
+ }
+});

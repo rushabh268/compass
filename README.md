@@ -280,3 +280,22 @@ npm run check
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the
 [threat model](docs/threat-model.md). This project is licensed under [MIT](LICENSE).
+
+## Optional Conductor reader connection
+
+Conductor can request verified, paged metadata evidence for Claude Code, Codex,
+and OpenCode sessions using a separate reader credential. The writer/identity key
+stays with Compass. Reader provisioning is independent of the native hook installer:
+
+```sh
+node src/cli.mjs companion-enable --home /absolute/home --state-dir /absolute/compass-state
+```
+
+The command requires existing Compass state/runtime and prepares only its reader key
+and generated service files. It preserves native registrations, refuses custom service
+files, and never starts or restarts services. Explicitly reload the Compass LaunchAgent
+when the result reports `reloadRequired`. New wrappers automatically accept a separately
+provisioned `reader-key`; manual supervisors can use `--reader-key-file`. Ordinary
+uninstall preserves the reader key unless `--purge-state` is requested. Provisioning
+never changes native client settings. See the [integration contract](docs/integrations/conductor.md)
+for framing, roles, identity semantics, snapshot limits, and synthetic fixtures.

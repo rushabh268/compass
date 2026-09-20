@@ -1,3 +1,4 @@
+import { hookSubject, identityHMAC as hmac } from '../../src/identity.mjs';
 import { createHmac } from "node:crypto";
 import { types } from "node:util";
 
@@ -65,16 +66,6 @@ function canonicalJSON(value) {
   return JSON.stringify(value);
 }
 
-function hmac(key, domain, value) {
-  const mac = createHmac("sha256", key);
-  for (const part of [domain, value]) {
-    const bytes = Buffer.from(part, "utf8");
-    const length = Buffer.allocUnsafe(4);
-    length.writeUInt32BE(bytes.length);
-    mac.update(length).update(bytes);
-  }
-  return mac.digest("hex");
-}
 
 function optionalString(payload, field) {
   const value = payload[field];
@@ -101,6 +92,8 @@ export function translateClaudeHook(payload, { authKey, now = new Date(), occurr
   if (!sessionID || !eventType) throw new TypeError("payload requires session_id and hook_event_name");
   if (!SUPPORTED_HOOK_EVENTS.has(eventType)) throw new TypeError("unsupported hook_event_name");
   const agentID = optionalString(copy, "agent_id");
+  const subject = hookSubject("claude", copy);
+  if (!subject) throw new TypeError("invalid native subject");
   const parentID = optionalString(copy, "parent_session_id") ?? optionalString(copy, "parent_agent_id") ?? (agentID ? sessionID : undefined);
   const cwd = optionalString(copy, "cwd");
   const toolName = optionalString(copy, "tool_name");
@@ -115,7 +108,7 @@ export function translateClaudeHook(payload, { authKey, now = new Date(), occurr
     platform: "claude",
     adapterVersion: "1",
     runID: claudeRunID(sessionID, authKey),
-    sessionHMAC: hmac(authKey, "claude.session", agentID ?? sessionID),
+    sessionHMAC: hmac(authKey, "claude.session", subject.nativeID),
     eventID: hmac(authKey, "claude.event", identity),
     dedupeKey: hmac(authKey, "claude.dedupe", identity),
     eventType,

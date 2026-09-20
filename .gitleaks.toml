@@ -79,6 +79,29 @@ regexes = [
   "\\Ace91663d16e6ae379b9dcd67ca095e332d59b47201913f4446a1390e798c8d8a\\z",
 ]
 
+[[rules.allowlists]]
+description = "Public fixed-key Conductor protocol HMAC outputs"
+condition = "AND"
+regexTarget = "secret"
+paths = ['\Atest/fixtures/conductor/protocol-v1\.json\z']
+regexes = [
+  '\A3939c6c4e153a0a1632abcbc34dff85e557000a43779b661b8acd200b1a9f39e\z',
+  '\A9b607bbe20ff78a7cb615a0cf20c569117b61f96b7e35877b587ef189445348d\z',
+  '\A317298ca9e90bd73da7500fc9c6630a7c56e684bf6a3f9d9f7f3fa0780e2f988\z',
+  '\Acd22af5440a3d52853ab5cc9cac753bb5a8a9d402e0ee4018b73b6b1889eaa7b\z',
+]
+
+[[rules.allowlists]]
+description = "Public fixed-key legacy grounding dedupe HMAC outputs"
+condition = "AND"
+regexTarget = "secret"
+paths = ['\Atest/fixtures/conductor/legacy-grounding\.json\z']
+regexes = [
+  '\Ac3c91a8ae4318f0a21707ec2c2dc76a9cd030cc168dfb6fbd03340019bb2704b\z',
+  '\A22e7802617a8018bc3ae7cfd8bb52db09843dc1318da7ed84e1474bbdbd1ac50\z',
+  '\A8799b2d8b52edbb52cc3a120d0b27b17df04dc39317b36df928789a50c09e259\z',
+]
+
 [[rules]]
 id = "github-pat"
 

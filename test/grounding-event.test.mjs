@@ -16,3 +16,18 @@ test('all platform grounding identities are separate, monthly, and immutable-ret
   assert.throws(() => buildGroundingEvent(metadata, options), /platform/);
   assert.throws(() => buildGroundingEvent({ ...metadata, brief: 'raw' }, { ...options, platform: 'codex' }));
 });
+test('targeted grounding preserves monthly run and separates target identity', () => {
+ const base = buildGroundingEvent(metadata,{...options,platform:'claude'});
+ const a = buildGroundingEvent(metadata,{...options,platform:'claude',target:{kind:'agent',nativeID:'synthetic-a'}});
+ const b = buildGroundingEvent(metadata,{...options,platform:'claude',target:{kind:'agent',nativeID:'synthetic-b'}});
+ assert.equal(a.runID,base.runID);
+ assert.notEqual(a.sessionHMAC,base.sessionHMAC);
+ assert.notEqual(a.eventID,b.eventID);
+ assert.notEqual(a.dedupeKey,b.dedupeKey);
+ assert.equal(JSON.stringify(a).includes('synthetic-a'),false);
+});
+test('no-target grounding remains byte-identical to pinned pre-integration fixtures',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const fixture=JSON.parse(await readFile(new URL('./fixtures/conductor/legacy-grounding.json',import.meta.url),'utf8'));
+ for(const event of fixture.events)assert.equal(JSON.stringify(buildGroundingEvent(fixture.metadata,{...fixture.options,platform:event.platform,hmacKey:Buffer.from(fixture.keyHex,'hex')})),JSON.stringify(event));
+});

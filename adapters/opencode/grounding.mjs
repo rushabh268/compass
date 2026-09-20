@@ -1,3 +1,4 @@
+import { validNativeID } from '../../src/identity.mjs';
 import { environmentValue } from "../../src/environment.mjs";
 import { randomUUID } from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
@@ -44,8 +45,8 @@ export function createGroundingCache({
     previousFingerprint = undefined;
   }
 
-  function addMetadata(metadata, occurrenceID) {
-    const entry = { metadata, occurrenceID };
+  function addMetadata(metadata, occurrenceID, sessionID) {
+    const entry = Object.freeze({ metadata, occurrenceID, ...(validNativeID(sessionID) ? { target: Object.freeze({ kind: "session", nativeID: sessionID }) } : {}) });
     if (metadataSize < MAX_RING_SIZE) {
       metadataRing[(metadataStart + metadataSize) % MAX_RING_SIZE] = entry;
       metadataSize += 1;
@@ -141,9 +142,9 @@ export function createGroundingCache({
       }, TOOL_ACTIVITY_WARM_DELAY_MS);
       activityTimer?.unref?.();
     },
-    recordInjection(occurrenceID) {
+    recordInjection(occurrenceID, sessionID) {
       if (!current) return;
-      addMetadata(current.metadata, occurrenceID ?? randomUUID());
+      addMetadata(current.metadata, occurrenceID ?? randomUUID(), sessionID);
     },
     drainMetadata() {
       const drained = new Array(metadataSize);

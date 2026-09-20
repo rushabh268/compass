@@ -182,9 +182,9 @@ export default async function OpenCodeShadow({
       try {
         for (const entry of groundingCache.drainMetadata?.() ?? []) {
           try {
-            const { metadata, occurrenceID } = entry && typeof entry === "object" && "metadata" in entry ?
+            const { metadata, occurrenceID, target } = entry && typeof entry === "object" && "metadata" in entry ?
               entry : { metadata: entry, occurrenceID: undefined };
-            enqueueEvent(buildGroundingEvent(metadata, { hmacKey: authKey, retentionEpoch: retentionEpoch ?? utcMonth(), occurrenceID }));
+            enqueueEvent(buildGroundingEvent(metadata, { hmacKey: authKey, retentionEpoch: retentionEpoch ?? utcMonth(), occurrenceID, target }));
           } catch { /* Fail open: malformed grounding metadata must not affect the host. */ }
         }
       } catch { /* Fail open: grounding telemetry must never affect host operations. */ }
@@ -277,7 +277,7 @@ export default async function OpenCodeShadow({
         if (snapshot && snapshot.brief && Array.isArray(output.system)) {
           output.system.push(snapshot.brief);
           try {
-            groundingCache.recordInjection?.();
+            groundingCache.recordInjection?.(undefined, input.sessionID);
           } catch { /* recordInjection failure is fail-open. */ }
         }
       } catch { /* Grounding injection must never affect host chat rendering. */ }

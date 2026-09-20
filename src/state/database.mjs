@@ -106,3 +106,22 @@ export function openDatabase(path) {
     throw error;
   }
 }
+
+// No mkdir, chmod, migration, journal-mode change, or legacy repair on this path.
+export function openReadDatabase(path) {
+ let absolute = resolve(path);
+ if(process.platform==='darwin' && absolute.startsWith('/var/')) absolute=join(realpathSync('/var'),absolute.slice(5));
+ let current=parse(absolute).root;
+ for(const part of absolute.slice(current.length).split(sep).filter(Boolean)) {
+  current=join(current,part);
+  if(lstatSync(current).isSymbolicLink()) throw new Error('unsafe evidence path');
+ }
+ const parent=lstatSync(dirname(absolute)), file=lstatSync(absolute);
+ if(parent.uid!==process.getuid() || (parent.mode&0o777)!==0o700 || !file.isFile() || file.uid!==process.getuid() || (file.mode&0o777)!==0o600) throw new Error('unsafe evidence path');
+ for(const suffix of ['-wal','-shm']) {
+  try { const entry=lstatSync(absolute+suffix);if(!entry.isFile() || entry.isSymbolicLink() || entry.uid!==process.getuid() || (entry.mode&0o077)!==0) throw new Error('unsafe evidence sidecar'); } catch(e) {if(e.code!=='ENOENT')throw e;}
+ }
+ const db=new DatabaseSync(absolute,{readOnly:true});
+ db.exec('PRAGMA query_only=ON; PRAGMA busy_timeout=1000');
+ return db;
+}

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { hookSubject } from './identity.mjs';
 import { environmentValue } from "./environment.mjs";
 import { realpath } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -51,7 +52,7 @@ export async function runGroundingHook({ platform, input = process.stdin, output
     try {
       authKey = await readAuthKeyFile(environmentValue("KEY_FILE"));
       controller.signal.throwIfAborted();
-      const event = buildGroundingEvent(result.metadata, { platform, hmacKey: authKey, retentionEpoch: utcMonth(), occurrenceID: randomUUID() });
+      const event = buildGroundingEvent(result.metadata, { platform, hmacKey: authKey, retentionEpoch: utcMonth(), occurrenceID: randomUUID(), target: hookSubject(platform, payload) });
       const options = { socketPath: environmentValue("SOCKET"), authKey, timeout: remaining, signal: controller.signal };
       await request({ ...options, method: 'ensureRun', params: { runID: event.runID }, id: `ensure:${event.runID}` });
       await request({ ...options, method: 'append', params: { event }, id: `append:${event.dedupeKey}` });

@@ -1,4 +1,5 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { hookSubject, identityHMAC as hmac } from '../../src/identity.mjs';
+import { randomUUID } from "node:crypto";
 import { types } from "node:util";
 
 import { scanText } from "../../src/dlp/classify.mjs";
@@ -80,16 +81,6 @@ function clonePayload(payload) {
   return copy;
 }
 
-function hmac(key, domain, value) {
-  const mac = createHmac("sha256", key);
-  for (const part of [domain, value]) {
-    const bytes = Buffer.from(part, "utf8");
-    const length = Buffer.allocUnsafe(4);
-    length.writeUInt32BE(bytes.length);
-    mac.update(length).update(bytes);
-  }
-  return mac.digest("hex");
-}
 
 function string(value, field) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -114,6 +105,7 @@ export function translateCodexHook(payload, { authKey, now = new Date(), occurre
   const subagent = SUBAGENT_EVENTS.has(eventType);
   // Codex SubagentStart/Stop use the parent's session_id and a separate agent_id.
   const subjectID = subagent ? string(copy.agent_id, "agent_id") : sessionID;
+  if (hookSubject("codex", copy)?.nativeID !== subjectID) throw new TypeError("invalid subject");
   const turnID = optionalString(copy, "turn_id");
   const cwd = optionalString(copy, "cwd");
   const toolName = optionalString(copy, "tool_name");

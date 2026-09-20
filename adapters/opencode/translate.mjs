@@ -1,5 +1,6 @@
+import { identityHMAC as hmac } from "../../src/identity.mjs";
 import { buildGroundingEvent as sharedGroundingEvent } from "../../src/grounding-event.mjs";
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { types } from "node:util";
 
 import { scanText } from "../../src/dlp/classify.mjs";
@@ -87,16 +88,6 @@ function canonicalJSON(value) {
   return JSON.stringify(value);
 }
 
-function hmac(key, domain, value) {
-  const mac = createHmac("sha256", key);
-  for (const part of [domain, value]) {
-    const bytes = Buffer.from(part, "utf8");
-    const length = Buffer.allocUnsafe(4);
-    length.writeUInt32BE(bytes.length);
-    mac.update(length).update(bytes);
-  }
-  return mac.digest("hex");
-}
 
 function string(value, name, required = false) {
   if (value === undefined && !required) return undefined;
