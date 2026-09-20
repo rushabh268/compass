@@ -25,7 +25,7 @@ async function fixture(t) {
   await fs.writeFile(join(root, 'app.js'), '// visible repository comment\n');
   await git(root, 'add', 'app.js');
   await git(root, 'commit', '-m', 'comment');
-  const notes = join(root, '.agent-harness/notes/context');
+  const notes = join(root, '.compass/notes/context');
   await fs.mkdir(notes, { recursive: true });
   await fs.writeFile(join(notes, 'status.md'), 'PROJ-123 shared project decision');
   return { root, notes, collect: (overrides = {}) => collectGrounding({ worktree: root, loadConfig: async () => policy, ...overrides }) };
@@ -56,10 +56,10 @@ test('shared reads reject a symlinked notes ancestor and allow explicit external
   await fs.mkdir(join(external, 'context'), { recursive: true });
   await fs.writeFile(join(external, 'context/status.md'), 'PROJ-123 external decision');
   assert.match((await collect({ notesDir: external })).brief, /external decision/);
-  await fs.rm(join(root, '.agent-harness'), { recursive: true });
+  await fs.rm(join(root, '.compass'), { recursive: true });
   await fs.mkdir(join(external, 'notes/context'), { recursive: true });
   await fs.writeFile(join(external, 'notes/context/status.md'), 'PROJ-123 forbidden escaped notes');
-  await fs.symlink(external, join(root, '.agent-harness'));
+  await fs.symlink(external, join(root, '.compass'));
   assert.doesNotMatch((await collect()).brief, /forbidden escaped/);
 });
 test('UTF-8 wrapper budget and credential-shaped source refs are redacted', async () => {
@@ -80,7 +80,7 @@ test('aggregate traversal and bytes stay bounded across many initiative candidat
   const { root, notes, collect } = await fixture(t);
   await fs.rm(notes, { recursive: true });
   for (let index = 0; index < 80; index++) {
-    const directory = join(root, '.agent-harness/notes', `candidate-${index}`);
+    const directory = join(root, '.compass/notes', `candidate-${index}`);
     await fs.mkdir(directory);
     await fs.writeFile(join(directory, 'status.md'), 'unrelated content');
   }

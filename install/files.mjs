@@ -117,7 +117,7 @@ export async function writeIfDifferent(path, content, mode, expected) {
   const checked = await preflightFile(path, { writable: true });
   if (current === content && (checked.entry.mode & 0o777) === mode) return false;
   await ensureDirectory(dirname(checked.path));
-  const temporary = join(dirname(checked.path), `.agent-harness-${randomUUID()}.tmp`);
+  const temporary = join(dirname(checked.path), `.compass-${randomUUID()}.tmp`);
   try {
     const handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, mode);
     try {
@@ -157,7 +157,7 @@ export async function createIfAbsent(path, content, mode = 0o600) {
 }
 
 export function backupPaths(path) {
-  return [`${path}.agent-harness.bak`, `${path}.bak`];
+  return [`${path}.compass.bak`, `${path}.bak`];
 }
 
 export async function preflightEdit({ path, original, changed }) {

@@ -572,8 +572,8 @@ test("RED: loads an enabled config from the default state path when the env over
   await writeFile(join(stateDir, "coalescing.json"), JSON.stringify(validConfig({ windowMs: 1234, queueMax: 7 })));
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: undefined,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: undefined,
   }, () => loadCoalescingConfig());
 
   assert.deepEqual(config, {
@@ -589,8 +589,8 @@ test("RED: a missing default-path config remains disabled", async () => {
   const stateDir = await mkdtemp(join(tmpdir(), "ah-coalescing-default-missing-"));
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: undefined,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: undefined,
   }, () => loadCoalescingConfig());
 
   assert.deepEqual(config, disabledConfig());
@@ -601,8 +601,8 @@ test("RED: a malformed default-path config fails closed", async () => {
   await writeFile(join(stateDir, "coalescing.json"), "{not-json");
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: undefined,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: undefined,
   }, () => loadCoalescingConfig());
 
   assert.deepEqual(config, disabledConfig());
@@ -616,8 +616,8 @@ test("RED: an env config path takes precedence over the default state path", asy
   await writeFile(envPath, JSON.stringify(validConfig({ enabled: true, windowMs: 4321 })));
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: envPath,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: envPath,
   }, () => loadCoalescingConfig());
 
   assert.equal(config.enabled, true);
@@ -630,8 +630,8 @@ test("RED: a missing env override fails closed instead of falling back to a vali
   await writeFile(join(stateDir, "coalescing.json"), JSON.stringify(validConfig()));
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: missingPath,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: missingPath,
   }, () => loadCoalescingConfig());
 
   assert.deepEqual(config, disabledConfig());
@@ -644,8 +644,8 @@ test("RED: an invalid env override fails closed instead of falling back to a val
   await writeFile(overridePath, JSON.stringify({ ...validConfig(), dlpOverride: false }));
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: overridePath,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: overridePath,
   }, () => loadCoalescingConfig());
 
   assert.deepEqual(config, disabledConfig());
@@ -662,8 +662,8 @@ test("RED: an explicit path wins over both the env override and default path", a
   await writeFile(explicitPath, JSON.stringify(validConfig({ enabled: false, windowMs: 3333 })));
 
   const config = await withEnv({
-    AGENT_HARNESS_STATE_DIR: stateDir,
-    AGENT_HARNESS_COALESCING_CONFIG: envPath,
+    COMPASS_STATE_DIR: stateDir,
+    COMPASS_COALESCING_CONFIG: envPath,
   }, () => loadCoalescingConfig(explicitPath));
 
   assert.equal(config.enabled, false);

@@ -1,5 +1,5 @@
 #!/bin/sh
-# One-command uninstaller for the agent-harness shadow harness.
+# One-command uninstaller for the compass shadow harness.
 #
 # Reverses install.sh: removes the launchd agent, wrapper, and our registrations
 # in Claude, Codex, OpenCode, and zsh, while preserving the ledger and auth key unless
@@ -10,7 +10,7 @@
 set -eu
 
 if [ "$(uname -s)" != "Darwin" ]; then
-  echo "agent-harness uninstall requires macOS (Darwin); detected $(uname -s)." >&2
+  echo "compass uninstall requires macOS (Darwin); detected $(uname -s)." >&2
   exit 1
 fi
 

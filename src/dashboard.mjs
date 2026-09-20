@@ -116,7 +116,7 @@ function generateHTML(refreshSeconds) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Harness Dashboard</title>
+    <title>Compass Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f5f5; padding: 20px; }
@@ -139,7 +139,7 @@ function generateHTML(refreshSeconds) {
 </head>
 <body>
     <div class="container">
-        <h1>Agent Harness Dashboard</h1>
+        <h1>Compass Dashboard</h1>
         <div id="status" class="status">Connecting...</div>
         <div id="metrics-container" class="metrics">
             <p class="loading">Loading metrics...</p>

@@ -10,19 +10,19 @@ import { createEventCoalescer, loadCoalescingConfig } from "../../../adapters/op
 const TEN_MINUTES = 10 * 60 * 1_000;
 const start = Date.parse("2026-08-24T12:00:00.000Z");
 const sentinel = "RAW-SENTINEL-must-never-reach-the-summary";
-const originalStateDir = process.env.AGENT_HARNESS_STATE_DIR;
-const originalCoalescingConfig = process.env.AGENT_HARNESS_COALESCING_CONFIG;
+const originalStateDir = process.env.COMPASS_STATE_DIR;
+const originalCoalescingConfig = process.env.COMPASS_COALESCING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-opencode-state-"));
-process.env.AGENT_HARNESS_STATE_DIR = hermeticStateDir;
-delete process.env.AGENT_HARNESS_COALESCING_CONFIG;
+process.env.COMPASS_STATE_DIR = hermeticStateDir;
+delete process.env.COMPASS_COALESCING_CONFIG;
 let environmentRestored = false;
 function restoreEnvironment() {
   if (environmentRestored) return;
   environmentRestored = true;
-  if (originalStateDir === undefined) delete process.env.AGENT_HARNESS_STATE_DIR;
-  else process.env.AGENT_HARNESS_STATE_DIR = originalStateDir;
-  if (originalCoalescingConfig === undefined) delete process.env.AGENT_HARNESS_COALESCING_CONFIG;
-  else process.env.AGENT_HARNESS_COALESCING_CONFIG = originalCoalescingConfig;
+  if (originalStateDir === undefined) delete process.env.COMPASS_STATE_DIR;
+  else process.env.COMPASS_STATE_DIR = originalStateDir;
+  if (originalCoalescingConfig === undefined) delete process.env.COMPASS_COALESCING_CONFIG;
+  else process.env.COMPASS_COALESCING_CONFIG = originalCoalescingConfig;
   rmSync(hermeticStateDir, { recursive: true, force: true });
 }
 process.once("exit", restoreEnvironment);

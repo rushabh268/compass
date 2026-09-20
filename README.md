@@ -1,4 +1,4 @@
-# Agent Harness
+# Compass
 
 A local companion for **Claude Code, Codex, and OpenCode**. It collects selected
 activity metadata in a shared audit ledger, inspects hook payloads for credential
@@ -44,12 +44,16 @@ when updating a client; context lifecycle and event coverage remain host-owned.
 
 ## Install
 
-Clone this repository to a stable location: installed commands refer to that
+Clone [rushabh268/compass](https://github.com/rushabh268/compass) to a stable location: installed commands refer to that
 checkout. First inspect what the installer would configure:
 
 ```sh
 ./install.sh --adapters claude,codex,opencode --dry-run
 ```
+
+Existing Agent Harness users: read [the migration guide](docs/migration.md) first.
+The installer refuses recognizable legacy registrations instead of starting a
+second supervisor or duplicating hooks.
 
 Then choose the clients you use:
 
@@ -67,10 +71,10 @@ Codex configuration directory; otherwise `CODEX_HOME`, then `~/.codex`, is used.
 
 The installer creates:
 
-- A pinned runtime under `~/.local/share/agent-harness-runtime`.
-- Private state under `~/.local/state/agent-harness`: an existing key and policy
+- A pinned runtime under `~/.local/share/compass-runtime`.
+- Private state under `~/.local/state/compass`: an existing key and policy
   files are preserved; a missing key is generated with mode `0600`.
-- A `local.agent-harness` launchd agent and supervisor wrapper.
+- A `local.compass` launchd agent and supervisor wrapper.
 - Managed registrations in only the selected clients: Claude's `settings.json`,
   Codex's `hooks.json`, and/or OpenCode's `opencode.jsonc`.
 - A marked environment block in `.zshenv` when OpenCode is selected, and backups
@@ -93,15 +97,15 @@ does not automatically migrate a different, pre-existing launchd service.
 ## Check the supervisor and open the dashboard
 
 ```sh
-~/.local/share/agent-harness-runtime/node_modules/node/bin/node \
+~/.local/share/compass-runtime/node_modules/node/bin/node \
   src/cli.mjs health \
-  --socket "$HOME/.local/state/agent-harness/supervisor.sock" \
-  --key-file "$HOME/.local/state/agent-harness/auth.key"
+  --socket "$HOME/.local/state/compass/supervisor.sock" \
+  --key-file "$HOME/.local/state/compass/auth.key"
 
-~/.local/share/agent-harness-runtime/node_modules/node/bin/node \
+~/.local/share/compass-runtime/node_modules/node/bin/node \
   src/cli.mjs dashboard \
-  --socket "$HOME/.local/state/agent-harness/supervisor.sock" \
-  --key-file "$HOME/.local/state/agent-harness/auth.key"
+  --socket "$HOME/.local/state/compass/supervisor.sock" \
+  --key-file "$HOME/.local/state/compass/auth.key"
 ```
 
 Open the printed URL, normally `http://127.0.0.1:7071`; `localhost:7071` is also
@@ -118,21 +122,21 @@ translators, authenticated RPC, persistence, immutable-event replay, and ledger
 integrity. It adds three synthetic events to the specified ledger:
 
 ```sh
-~/.local/share/agent-harness-runtime/node_modules/node/bin/node \
+~/.local/share/compass-runtime/node_modules/node/bin/node \
   src/cli.mjs canary \
-  --socket "$HOME/.local/state/agent-harness/supervisor.sock" \
-  --key-file "$HOME/.local/state/agent-harness/auth.key" \
-  --ledger "$HOME/.local/state/agent-harness/events.sqlite"
+  --socket "$HOME/.local/state/compass/supervisor.sock" \
+  --key-file "$HOME/.local/state/compass/auth.key" \
+  --ledger "$HOME/.local/state/compass/events.sqlite"
 ```
 
 ## Automatic project grounding
 
-Grounding reads Markdown notes from `.agent-harness/notes` in the main checkout.
+Grounding reads Markdown notes from `.compass/notes` in the main checkout.
 For example:
 
 ```text
 your-project/
-  .agent-harness/notes/
+  .compass/notes/
     credential-refresh/
       decisions.md
       status.md
@@ -142,11 +146,11 @@ The branch is matched to a note folder by a ticket identifier found in its text,
 then by folder-name overlap. A single note folder is a fallback when no match is
 found. Linked and nested worktrees share the main checkout's notes.
 
-To keep notes elsewhere, set `AGENT_HARNESS_NOTES_DIR` in the coding tool’s environment.
+To keep notes elsewhere, set `COMPASS_NOTES_DIR` in the coding tool’s environment.
 An absolute path selects that directory; a relative path is resolved from the
-main checkout. Unset or empty uses `.agent-harness/notes`.
+main checkout. Unset or empty uses `.compass/notes`.
 
-`~/.local/state/agent-harness/grounding.json` controls the feature:
+`~/.local/state/compass/grounding.json` controls the feature:
 
 ```json
 {
@@ -160,7 +164,7 @@ main checkout. Unset or empty uses `.agent-harness/notes`.
 
 The installer creates this enabled example only if absent. A missing or invalid
 configuration disables grounding. Set `enabled` to `false` to disable it. File
-location can be overridden by `AGENT_HARNESS_GROUNDING_CONFIG`.
+location can be overridden by `COMPASS_GROUNDING_CONFIG`.
 
 Repository comments currently come from working-tree files selected by
 `git diff HEAD~1 HEAD`; this is not a repository-wide search or a search across
@@ -241,7 +245,7 @@ available through the CLI; inspect their output before choosing a prune action.
 If the supervisor appears unavailable, check:
 
 ```sh
-launchctl print "gui/$(id -u)/local.agent-harness"
+launchctl print "gui/$(id -u)/local.compass"
 ```
 
 Then check the health command and the local supervisor error log. If Codex events

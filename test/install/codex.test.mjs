@@ -146,8 +146,8 @@ test("all three adapters merge without changing user hooks or disabled choices",
   const second = await bootstrap(options);
   assert.equal(second.changed.codexHooks, false);
   assert.equal(await readFile(path, "utf8"), beforeSecond);
-  assert.deepEqual(JSON.parse(await readFile(`${path}.agent-harness.bak`, "utf8")), original);
-  assert.equal((await stat(`${path}.agent-harness.bak`)).mode & 0o777, 0o600);
+  assert.deepEqual(JSON.parse(await readFile(`${path}.compass.bak`, "utf8")), original);
+  assert.equal((await stat(`${path}.compass.bak`)).mode & 0o777, 0o600);
   assert.ok(await stat(setup.targets.claudeSettings));
   assert.ok(await stat(setup.targets.opencodeConfig));
 });

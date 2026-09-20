@@ -1,7 +1,7 @@
 # Reviewed synthetic fixtures only. Each exception requires BOTH the exact
 # file and the exact detected value; other values in these files still fail.
 # Do not generate new exceptions without inspecting the finding and fixture.
-title = "Agent Harness synthetic credential fixtures"
+title = "Compass synthetic credential fixtures"
 
 [extend]
 useDefault = true
@@ -66,6 +66,17 @@ regexes = [
   "\\Aghp_A9fkL3pQ7mN2vR4xT8zC6bD0\\z",
   "\\AtK9_mP4\\-vQ7\\.zR2\\z",
   "\\Atest\\-live\\-A9f_kL3\\-pQ7\\z",
+]
+
+[[rules.allowlists]]
+description = "Reviewed baseline synthetic HMAC outputs: dedupe labels and health-request MAC, not keys"
+condition = "AND"
+regexTarget = "secret"
+paths = ["\\Atest/fixtures/compatibility/legacy-ledger\\.json\\z"]
+regexes = [
+  "\\A7393d8f34ad9e435c2a24cde2abf2e8f879f092b12f52df730705c4563c9bb72\\z",
+  "\\A1b6f52f9ddb2248bd1a9cfc48cdf02ab402e2f62bb5b384a7ff587d032a790ff\\z",
+  "\\Ace91663d16e6ae379b9dcd67ca095e332d59b47201913f4446a1390e798c8d8a\\z",
 ]
 
 [[rules]]

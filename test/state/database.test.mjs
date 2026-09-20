@@ -11,7 +11,7 @@ const key = Buffer.alloc(32, 0xa5);
 
 test("readTransaction keeps WAL reads on one snapshot", async (t) => {
   const root = await mkdir(
-    join(tmpdir(), `agent-harness-read-transaction-${process.pid}-${Date.now()}`),
+    join(tmpdir(), `compass-read-transaction-${process.pid}-${Date.now()}`),
     { recursive: true },
   );
   const path = join(root, "ledger.sqlite");

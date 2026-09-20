@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { environmentValue } from "../../src/environment.mjs";
 import { TextDecoder } from "node:util";
 
 import { readAuthKeyFile } from "../../src/paths.mjs";
@@ -37,11 +38,11 @@ async function main() {
   };
   try {
     const payload = await readInput();
-    authKey = await readAuthKeyFile(process.env.AGENT_HARNESS_KEY_FILE);
+    authKey = await readAuthKeyFile(environmentValue("KEY_FILE"));
     // Validate before ensureRun: malformed or unsupported callbacks create no state.
     const event = translateCodexHook(payload, { authKey });
     const options = {
-      socketPath: process.env.AGENT_HARNESS_SOCKET,
+      socketPath: environmentValue("SOCKET"),
       authKey,
       signal: controller.signal,
     };

@@ -52,8 +52,8 @@ async function removalEdit(path, transform) {
   const result = transform(original);
   const text = result.settings ? `${JSON.stringify(result.settings, null, 2)}\n` : result.text;
   await preflightFile(path, { writable: result.changed });
-  const backup = await inspectPath(`${path}.agent-harness.bak`);
-  return { path, original, text, changed: result.changed, remove: !backup.entry && (text === "" || text === "{}\n") };
+  const backups = await Promise.all([`${path}.compass.bak`, `${path}.agent-harness.bak`].map((backup) => inspectPath(backup)));
+  return { path, original, text, changed: result.changed, remove: !backups.some((backup) => backup.entry) && (text === "" || text === "{}\n") };
 }
 
 export async function run({
@@ -65,7 +65,7 @@ export async function run({
   purgeState = false,
   skipLaunchd = false,
 } = {}) {
-  if (process.platform !== "darwin") throw new Error("agent-harness uninstall requires macOS");
+  if (process.platform !== "darwin") throw new Error("compass uninstall requires macOS");
   assertSupportedRuntime();
   const targets = resolveTargets({ home, repoRoot, codexHome });
   await preflightDirectory(targets.stateDir, { mode: 0o700 });

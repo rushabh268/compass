@@ -44,8 +44,8 @@ const events = [
 
 function fixtureTargets() {
   return resolveTargets({
-    home: "/private/tmp/agent-harness-home",
-    repoRoot: "/private/tmp/agent-harness-repo",
+    home: "/private/tmp/compass-home",
+    repoRoot: "/private/tmp/compass-repo",
   });
 }
 
@@ -151,24 +151,24 @@ function findCommandGroups(settings, event, command) {
 }
 
 test("resolveTargets derives portable absolute paths from home and repoRoot", () => {
-  const home = "/private/tmp/agent-harness-home";
-  const repoRoot = "/private/tmp/agent-harness-repo";
+  const home = "/private/tmp/compass-home";
+  const repoRoot = "/private/tmp/compass-repo";
   const targets = resolveTargets({ home, repoRoot });
 
   assert.deepEqual(targets, {
-    runtimeNodeBin: join(home, ".local/share/agent-harness-runtime/node_modules/node/bin/node"),
-    stateDir: join(home, ".local/state/agent-harness"),
-    keyFile: join(home, ".local/state/agent-harness/auth.key"),
-    socket: join(home, ".local/state/agent-harness/supervisor.sock"),
-    ledger: join(home, ".local/state/agent-harness/events.sqlite"),
-    coalescingConfig: join(home, ".local/state/agent-harness/coalescing.json"),
-    groundingConfig: join(home, ".local/state/agent-harness/grounding.json"),
-    installationManifest: join(home, ".local/state/agent-harness/installation.json"),
+    runtimeNodeBin: join(home, ".local/share/compass-runtime/node_modules/node/bin/node"),
+    stateDir: join(home, ".local/state/compass"),
+    keyFile: join(home, ".local/state/compass/auth.key"),
+    socket: join(home, ".local/state/compass/supervisor.sock"),
+    ledger: join(home, ".local/state/compass/events.sqlite"),
+    coalescingConfig: join(home, ".local/state/compass/coalescing.json"),
+    groundingConfig: join(home, ".local/state/compass/grounding.json"),
+    installationManifest: join(home, ".local/state/compass/installation.json"),
     localBin: join(home, ".local/bin"),
-    wrapperPath: join(home, ".local/bin/agent-harness-supervisor"),
-    plistPath: join(home, "Library/LaunchAgents/local.agent-harness.plist"),
-    outLog: join(home, ".local/state/agent-harness/supervisor.out.log"),
-    errLog: join(home, ".local/state/agent-harness/supervisor.err.log"),
+    wrapperPath: join(home, ".local/bin/compass-supervisor"),
+    plistPath: join(home, "Library/LaunchAgents/local.compass.plist"),
+    outLog: join(home, ".local/state/compass/supervisor.out.log"),
+    errLog: join(home, ".local/state/compass/supervisor.err.log"),
     claudeSettings: join(home, ".claude/settings.json"),
     opencodeConfig: join(home, ".config/opencode/opencode.jsonc"),
     codexHooks: join(home, ".codex/hooks.json"),
@@ -184,8 +184,8 @@ test("resolveTargets derives portable absolute paths from home and repoRoot", ()
 });
 
 test("resolveTargets honors runtimeDir and stateDir while remaining deterministic and pure", () => {
-  const home = "/private/tmp/agent-harness-home";
-  const repoRoot = "/private/tmp/agent-harness-repo";
+  const home = "/private/tmp/compass-home";
+  const repoRoot = "/private/tmp/compass-repo";
   const runtimeDir = join(home, "custom/runtime");
   const stateDir = join(home, "custom/state");
   const first = resolveTargets({ home, repoRoot, runtimeDir, stateDir });
@@ -222,7 +222,7 @@ test("renderLaunchdPlist contains the portable launchd contract", () => {
   const targets = fixtureTargets();
   const plist = renderLaunchdPlist(targets);
 
-  assert.match(plist, /<key>Label<\/key>\s*<string>local\.agent-harness<\/string>/);
+  assert.match(plist, /<key>Label<\/key>\s*<string>local\.compass<\/string>/);
   assert.match(plist, new RegExp(`<key>ProgramArguments<\\/key>\\s*<array>\\s*<string>${targets.wrapperPath}<\\/string>\\s*<\\/array>`));
   assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\s*\/>/);
   assert.match(plist, /<key>KeepAlive<\/key>\s*<true\s*\/>/);
@@ -264,7 +264,7 @@ test("claudeHookCommand composes only the planned environment and hook paths", (
   const targets = fixtureTargets();
   assert.equal(
     claudeHookCommand(targets),
-    `AGENT_HARNESS_SOCKET='${targets.socket}' AGENT_HARNESS_KEY_FILE='${targets.keyFile}' '${targets.runtimeNodeBin}' '${targets.claudeHook}'`,
+    `COMPASS_SOCKET='${targets.socket}' COMPASS_KEY_FILE='${targets.keyFile}' '${targets.runtimeNodeBin}' '${targets.claudeHook}'`,
   );
   assertNoForeignUser(claudeHookCommand(targets));
 });
@@ -431,15 +431,15 @@ test("removeOpenCodePlugin removes only our entry and preserves JSONC text", () 
   assert.equal(unchanged.text, removed.text);
 });
 
-test("zshenv block exports all planned environment paths and has agent-harness markers", () => {
+test("zshenv block exports all planned environment paths and has compass markers", () => {
   const targets = fixtureTargets();
   const block = zshenvBlock(targets);
 
-  assert.match(block, /BEGIN agent-harness/);
-  assert.match(block, /END agent-harness/);
-  assert.match(block, new RegExp(`AGENT_HARNESS_SOCKET='${targets.socket}'`));
-  assert.match(block, new RegExp(`AGENT_HARNESS_KEY_FILE='${targets.keyFile}'`));
-  assert.match(block, new RegExp(`AGENT_HARNESS_COALESCING_CONFIG='${targets.coalescingConfig}'`));
+  assert.match(block, /BEGIN compass/);
+  assert.match(block, /END compass/);
+  assert.match(block, new RegExp(`COMPASS_SOCKET='${targets.socket}'`));
+  assert.match(block, new RegExp(`COMPASS_KEY_FILE='${targets.keyFile}'`));
+  assert.match(block, new RegExp(`COMPASS_COALESCING_CONFIG='${targets.coalescingConfig}'`));
   assertNoForeignUser(block);
 });
 
@@ -450,13 +450,13 @@ test("applyZshenv appends, updates, and idempotently replaces only its block", (
   const first = applyZshenv(original, oldTargets);
   assert.equal(first.changed, true);
   assert.equal(first.text.startsWith(original), true);
-  assert.equal(first.text.split("BEGIN agent-harness").length - 1, 1);
+  assert.equal(first.text.split("BEGIN compass").length - 1, 1);
 
   const updated = applyZshenv(first.text, targets);
   assert.equal(updated.changed, true);
   assert.equal(updated.text.includes(oldTargets.socket), false);
   assert.equal(updated.text.includes(targets.socket), true);
-  assert.equal(updated.text.split("BEGIN agent-harness").length - 1, 1);
+  assert.equal(updated.text.split("BEGIN compass").length - 1, 1);
 
   const second = applyZshenv(updated.text, targets);
   assert.equal(second.changed, false);
@@ -478,8 +478,8 @@ test("applyZshenv accepts null and removeZshenv restores an empty file", () => {
 });
 
 test("resolveTargets includes groundingConfig path under stateDir", () => {
-  const home = "/private/tmp/agent-harness-home";
-  const repoRoot = "/private/tmp/agent-harness-repo";
+  const home = "/private/tmp/compass-home";
+  const repoRoot = "/private/tmp/compass-repo";
   const targets = resolveTargets({ home, repoRoot });
 
   assert.equal(Object.hasOwn(targets, "groundingConfig"), true, "targets must have groundingConfig");
@@ -488,11 +488,11 @@ test("resolveTargets includes groundingConfig path under stateDir", () => {
   assert.equal(targets.groundingConfig.includes(FOREIGN_USER), false);
 });
 
-test("zshenvBlock exports AGENT_HARNESS_GROUNDING_CONFIG pointing to groundingConfig path", () => {
+test("zshenvBlock exports COMPASS_GROUNDING_CONFIG pointing to groundingConfig path", () => {
   const targets = fixtureTargets();
   const block = zshenvBlock(targets);
 
-  assert.equal(block.includes("AGENT_HARNESS_GROUNDING_CONFIG"), true);
+  assert.equal(block.includes("COMPASS_GROUNDING_CONFIG"), true);
   assert.equal(block.includes(targets.groundingConfig), true);
   assertNoForeignUser(block);
 });

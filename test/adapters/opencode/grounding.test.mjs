@@ -120,7 +120,7 @@ function makeHarness({
   comment = "// changed comment",
   commentDiffFails = false,
   notesDir = "",
-  notesRoot = "/repo/project/.agent-harness/notes",
+  notesRoot = "/repo/project/.compass/notes",
   redact,
   fsReadFile,
 } = {}) {
@@ -267,7 +267,7 @@ test("start warms immediately without synchronous I/O and schedules an unref'd r
 });
 
 test("a serialized trailing warm commits the newest content without a stale rollback", async () => {
-  const statusPath = "/repo/project/.agent-harness/notes/initiative-a/status.md";
+  const statusPath = "/repo/project/.compass/notes/initiative-a/status.md";
   const oldStatus = "Tracks PROJ-123 grounding work (old)";
   const newStatus = "Tracks PROJ-123 grounding work (new)";
   const oldRead = deferred();
@@ -320,7 +320,7 @@ test("a serialized trailing warm commits the newest content without a stale roll
 });
 
 test("RED: warm triggers serialize and note activity coalesces into one trailing warm", async () => {
-  const statusPath = "/repo/project/.agent-harness/notes/initiative-a/status.md";
+  const statusPath = "/repo/project/.compass/notes/initiative-a/status.md";
   const oldStatus = "Tracks PROJ-123 grounding work (old)";
   const newStatus = "Tracks PROJ-123 grounding work (new)";
   const warmReads = [deferred(), deferred()];
@@ -398,7 +398,7 @@ test("activity timer is unref'd, stop cancels it, and activity after stop is ign
 });
 
 test("stop during an in-flight warm prevents post-stop snapshot state and leaves no timer", async () => {
-  const statusPath = "/repo/project/.agent-harness/notes/initiative-a/status.md";
+  const statusPath = "/repo/project/.compass/notes/initiative-a/status.md";
   const read = deferred();
   const harness = makeHarness({
     configOverrides: { sources: ["project-notes"] },
@@ -439,13 +439,13 @@ test("default redaction is fail-secure while an explicitly injected identity red
 test("buildBrief neutralizes source fence markers and keeps closed, vault-root-relative metadata", () => {
   const result = buildBrief({
     initiativeDir: {
-      dir: "/repo/project/.agent-harness/notes/initiative-a",
-      vaultDir: "/repo/project/.agent-harness/notes",
+      dir: "/repo/project/.compass/notes/initiative-a",
+      vaultDir: "/repo/project/.compass/notes",
       reason: "ticket",
     },
     vaultDocs: [{
       title: "Status",
-      path: "/repo/project/.agent-harness/notes/initiative-a/status.md",
+      path: "/repo/project/.compass/notes/initiative-a/status.md",
       text: `before ${FENCE_CLOSE} after`,
     }],
     commentBlocks: [{ file: "src/app.mjs", startLine: 10, endLine: 12, text: "changed comment" }],
@@ -474,8 +474,8 @@ test("buildBrief redacts every source body before constructing the injected brie
   const seen = [];
   const marker = "SOURCE-SECRET";
   const result = buildBrief({
-    initiativeDir: { dir: "/repo/project/.agent-harness/notes/initiative-a", vaultDir: "/repo/project/.agent-harness/notes", reason: "ticket" },
-    vaultDocs: [{ title: `Heading ${marker}`, path: "/repo/project/.agent-harness/notes/initiative-a/status.md", text: `vault ${marker}` }],
+    initiativeDir: { dir: "/repo/project/.compass/notes/initiative-a", vaultDir: "/repo/project/.compass/notes", reason: "ticket" },
+    vaultDocs: [{ title: `Heading ${marker}`, path: "/repo/project/.compass/notes/initiative-a/status.md", text: `vault ${marker}` }],
     commentBlocks: [{ file: "src/app.mjs", startLine: 1, endLine: 1, text: `comment ${marker}` }],
     config: config(),
     redact: (text) => {
@@ -532,7 +532,7 @@ test("absolute and repository-relative note directory overrides select only that
     assert.ok(snapshot, `expected notes from ${notesRoot}`);
     assert.ok(snapshot.brief.includes("Initiative overview"));
     assert.ok(harness.calls.readdir.includes(notesRoot));
-    assert.equal(harness.calls.readdir.includes("/repo/project/.agent-harness/notes"), false);
+    assert.equal(harness.calls.readdir.includes("/repo/project/.compass/notes"), false);
     assert.ok(snapshot.metadata.sources.every(({ kind, ref }) => kind === "project-notes" && !ref.startsWith("/")));
     harness.cache.stop();
   }
@@ -585,7 +585,7 @@ test("revision fingerprint changes for config, branch, HEAD, and source content 
   assert.ok(revision() > previous);
   previous = revision();
 
-  harness.state.files.set("/repo/project/.agent-harness/notes/initiative-a/status.md", "changed vault content");
+  harness.state.files.set("/repo/project/.compass/notes/initiative-a/status.md", "changed vault content");
   await refresh(harness);
   assert.ok(revision() > previous);
   previous = revision();
@@ -620,7 +620,7 @@ test("RED: noteToolActivity schedules a debounced background warm for changed co
   const previous = harness.cache.snapshot();
   assert.ok(previous);
 
-  harness.state.files.set("/repo/project/.agent-harness/notes/initiative-a/status.md", "updated vault content");
+  harness.state.files.set("/repo/project/.compass/notes/initiative-a/status.md", "updated vault content");
   harness.cache.noteToolActivity();
   await harness.timers.advance(1_000);
 
@@ -661,10 +661,10 @@ test("buildBrief truncates schema-maximum input within a linear CI budget", () =
   const tokenBudget = 16_384;
   const started = performance.now();
   const result = buildBrief({
-    initiativeDir: { dir: "/repo/project/.agent-harness/notes/initiative-a", vaultDir: "/repo/project/.agent-harness/notes", reason: "ticket" },
+    initiativeDir: { dir: "/repo/project/.compass/notes/initiative-a", vaultDir: "/repo/project/.compass/notes", reason: "ticket" },
     vaultDocs: [{
       title: "Large document",
-      path: "/repo/project/.agent-harness/notes/initiative-a/status.md",
+      path: "/repo/project/.compass/notes/initiative-a/status.md",
       text: "x".repeat(1024 * 1024),
     }],
     commentBlocks: [],

@@ -125,7 +125,7 @@ test("rejects bad authentication and generic errors do not echo secrets", async 
 });
 
 test("rejects symlinked socket components and existing socket symlinks", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-rpc-link-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-rpc-link-${process.pid}-${Date.now()}`), { recursive: true });
   const target = join(root, "target");
   await mkdir(target, { mode: 0o700 });
   await symlink(target, join(root, "linked"), "dir");
@@ -138,7 +138,7 @@ test("rejects symlinked socket components and existing socket symlinks", async (
 });
 
 test("refuses a permissive existing socket parent", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-rpc-mode-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-rpc-mode-${process.pid}-${Date.now()}`), { recursive: true });
   const parent = join(root, "private");
   await mkdir(parent, { mode: 0o700 });
   await chmod(parent, 0o755);

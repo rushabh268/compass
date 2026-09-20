@@ -13,13 +13,13 @@ credential, tool, or network access.
 |---|---|---|
 | Process identity | Agent uses the operator's identity. | Agent uses an OS sandbox or separate identity. |
 | Filesystem | Existing user permissions apply. | Access is restricted to the admitted repository and required runtime paths. |
-| Publisher credentials | May remain visible through the operator environment; the harness does not claim containment. | Absent from agent processes and available only to the publication broker. |
+| Publisher credentials | May remain visible through the operator environment; Compass does not claim containment. | Absent from agent processes and available only to the publication broker. |
 | General network | Existing host access remains available. | Direct network access is denied. |
 | Model provider | Adapter-visible requests may be observed. Direct access remains possible. | A credentialed gateway reaches exact approved provider origins. |
 | MCP reads | Configured clients may connect directly. | The MCP gateway exposes only approved read operations. |
-| MCP writes | Existing tools remain usable outside the harness. | Write operations require a valid approval capability through the MCP gateway. |
+| MCP writes | Existing tools remain usable outside Compass. | Write operations require a valid approval capability through the MCP gateway. |
 | Git push | Existing credentials and commands remain usable. | Direct push is denied; the publisher pushes only an approved, sealed commit. |
-| Jira, Confluence, and Stash writes | Existing clients remain usable outside the harness. | The publication broker is the only write path. |
+| Jira, Confluence, and Stash writes | Existing clients remain usable outside Compass. | The publication broker is the only write path. |
 | Human approval | Workflow convention only. | A Keychain-backed key signs the payload hash, nonce, target, operation, and expiry using a command unavailable to agent subprocesses. |
 | Rollback detection | Cannot detect coordinated rollback of the SQLite database and all same-UID local anchors. | Requires an external, hardware-backed, or remote monotonic anchor unavailable to the agent identity. |
 | Ledger append integrity | Authenticates the run commitment and persisted tail in constant time; tail deletion and commitment tampering block append. Middle-row tampering is detected by full reads and audits. | Same local checks, backed by the required external monotonic anchor for rollback detection. |

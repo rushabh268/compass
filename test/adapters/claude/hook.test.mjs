@@ -44,7 +44,7 @@ test("identical Claude tool hooks without tool_use_id append for each occurrence
     tool_input: { command: "secret-command" },
     tool_response: "secret-response",
   });
-  const env = { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile };
+  const env = { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: keyFile };
 
   for (let index = 0; index < 2; index += 1) {
     const result = await runHook(payload, env);
@@ -65,7 +65,7 @@ test("replayed Claude tool hooks with the same tool_use_id append once", async (
     tool_use_id: "native-tool-use",
     tool_name: "Bash",
   });
-  const env = { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile };
+  const env = { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: keyFile };
 
   for (let index = 0; index < 2; index += 1) {
     const result = await runHook(payload, env);
@@ -87,8 +87,8 @@ test("secret-bearing Claude hooks persist only an observe decision", async (t) =
     tool_input: { command: sentinel },
   };
   const result = await runHook(JSON.stringify(payload), {
-    AGENT_HARNESS_SOCKET: socketPath,
-    AGENT_HARNESS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: socketPath,
+    COMPASS_KEY_FILE: keyFile,
   });
 
   assert.deepEqual(result, { code: 0, signal: null, stdout: "", stderr: "" });
@@ -111,8 +111,8 @@ test("unknown secret-bearing hook event names append nothing", async (t) => {
     session_id: "native-session",
   });
   const result = await runHook(payload, {
-    AGENT_HARNESS_SOCKET: socketPath,
-    AGENT_HARNESS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: socketPath,
+    COMPASS_KEY_FILE: keyFile,
   });
 
   assert.deepEqual(result, { code: 0, signal: null, stdout: "", stderr: "" });
@@ -128,10 +128,10 @@ test("malformed input and unavailable supervisor fail open without output", asyn
   const linkedKey = join(root, "linked.key");
   await symlink(keyFile, linkedKey, "file");
   const cases = [
-    ["{", { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile }],
-    [JSON.stringify({ hook_event_name: "SessionStart", session_id: "SECRET" }), { AGENT_HARNESS_SOCKET: join(root, "missing.sock"), AGENT_HARNESS_KEY_FILE: keyFile }],
-    [JSON.stringify({ hook_event_name: "SessionStart", session_id: "SECRET" }), { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: linkedKey }],
-    ["x".repeat(1024 * 1024 + 1), { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile }],
+    ["{", { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: keyFile }],
+    [JSON.stringify({ hook_event_name: "SessionStart", session_id: "SECRET" }), { COMPASS_SOCKET: join(root, "missing.sock"), COMPASS_KEY_FILE: keyFile }],
+    [JSON.stringify({ hook_event_name: "SessionStart", session_id: "SECRET" }), { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: linkedKey }],
+    ["x".repeat(1024 * 1024 + 1), { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: keyFile }],
   ];
   for (const [input, env] of cases) {
     const result = await runHook(input, env);
@@ -140,8 +140,8 @@ test("malformed input and unavailable supervisor fail open without output", asyn
 
   await chmod(keyFile, 0o644);
   const permissive = await runHook(JSON.stringify({ hook_event_name: "SessionStart", session_id: "SECRET" }), {
-    AGENT_HARNESS_SOCKET: socketPath,
-    AGENT_HARNESS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: socketPath,
+    COMPASS_KEY_FILE: keyFile,
   });
   assert.deepEqual(permissive, { code: 0, signal: null, stdout: "", stderr: "" });
 });
@@ -167,10 +167,22 @@ test("malformed UTF-8 stdin fails open without appending", async (t) => {
     Buffer.from([0xc3, 0x28]),
     Buffer.from('"}'),
   ]), {
-    AGENT_HARNESS_SOCKET: socketPath,
-    AGENT_HARNESS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: socketPath,
+    COMPASS_KEY_FILE: keyFile,
   });
 
   assert.deepEqual(result, { code: 0, signal: null, stdout: "", stderr: "" });
   assert.deepEqual(calls.filter(([method]) => method === "append"), []);
+});
+
+test("legacy hook environment reaches the same ledger and explicit invalid Compass key does not fall back", async (t) => {
+  const { keyFile, socketPath, ledger } = await fixture(t);
+  const payload = { hook_event_name: "PostToolUse", session_id: "legacy-session", tool_use_id: "legacy-use", tool_name: "Bash" };
+  const env = { COMPASS_SOCKET: undefined, COMPASS_KEY_FILE: undefined, AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile };
+  assert.equal((await runHook(JSON.stringify(payload), env)).code, 0);
+  const { translateClaudeHook } = await import("../../../adapters/claude/translate.mjs");
+  const runID = translateClaudeHook(payload, { authKey }).runID;
+  assert.equal(ledger.listEvents(runID).length, 1);
+  await runHook(JSON.stringify({ ...payload, tool_use_id: "must-not-append" }), { ...env, COMPASS_KEY_FILE: "" });
+  assert.equal(ledger.listEvents(runID).length, 1);
 });

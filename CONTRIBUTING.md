@@ -1,6 +1,6 @@
 # Contributing
 
-Agent Harness is a local companion to a coding tool's native runtime. Changes
+Compass is a local companion to a coding tool's native runtime. Changes
 should preserve that boundary: adapters observe supported events; the native
 tool still owns execution, permissions, context history, and its agent loop.
 Grounding contributes bounded project context through each host’s supported

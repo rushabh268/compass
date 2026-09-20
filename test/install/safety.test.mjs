@@ -48,8 +48,8 @@ test("all selected client shapes are validated before state, runtime, or launchd
     await absent(setup.targets.stateDir);
     await absent(setup.targets.wrapperPath);
     await absent(setup.targets.plistPath);
-    await absent(join(setup.home, ".local/share/agent-harness-runtime"));
-    await absent(`${path}.agent-harness.bak`);
+    await absent(join(setup.home, ".local/share/compass-runtime"));
+    await absent(`${path}.compass.bak`);
   }
 });
 
@@ -67,7 +67,7 @@ test("installer rejects symlinked configs, parents, state, artifacts, and backup
     else if (targetName === "stateDir") { linkPath = setup.targets.stateDir; linkTarget = external; }
     else if (targetName === "backup") {
       await write(join(setup.codexHome, "hooks.json"), '{"description":"original"}');
-      linkPath = join(setup.codexHome, "hooks.json.agent-harness.bak");
+      linkPath = join(setup.codexHome, "hooks.json.compass.bak");
     } else linkPath = setup.targets[targetName];
     await mkdir(dirname(linkPath), { recursive: true, mode: 0o700 });
     await symlink(linkTarget, linkPath);
@@ -175,7 +175,7 @@ test("shell commands, environment, plugin URL, and plist preserve literal metach
   const home = join(setup.home, "home ' $(touch injected) `touch injected` $PATH & < >");
   const repoRoot = join(setup.home, "repo ' $(touch injected) `touch injected` $PATH & < >");
   const targets = plan.resolveTargets({ home, repoRoot });
-  await write(targets.runtimeNodeBin, '#!/bin/sh\nprintf "%s\\n" "$AGENT_HARNESS_SOCKET" "$AGENT_HARNESS_KEY_FILE" "$@"\n', 0o755);
+  await write(targets.runtimeNodeBin, '#!/bin/sh\nprintf "%s\\n" "$COMPASS_SOCKET" "$COMPASS_KEY_FILE" "$@"\n', 0o755);
   const wrapper = plan.renderSupervisorWrapper(targets);
   await write(targets.wrapperPath, wrapper, 0o755);
   const wrapperRun = await execFileAsync("/bin/sh", [targets.wrapperPath], { cwd: setup.home });
@@ -185,12 +185,12 @@ test("shell commands, environment, plugin URL, and plist preserve literal metach
     assert.deepEqual(result.stdout.trimEnd().split("\n"), [targets.socket, targets.keyFile, hook]);
   }
   await write(targets.zshenv, plan.zshenvBlock(targets));
-  const sourced = await execFileAsync("/bin/sh", ["-c", '. "$1"; printf "%s\\n" "$AGENT_HARNESS_SOCKET" "$AGENT_HARNESS_KEY_FILE" "$AGENT_HARNESS_COALESCING_CONFIG" "$AGENT_HARNESS_GROUNDING_CONFIG"', "test-env", targets.zshenv], { cwd: setup.home });
+  const sourced = await execFileAsync("/bin/sh", ["-c", '. "$1"; printf "%s\\n" "$COMPASS_SOCKET" "$COMPASS_KEY_FILE" "$COMPASS_COALESCING_CONFIG" "$COMPASS_GROUNDING_CONFIG"', "test-env", targets.zshenv], { cwd: setup.home });
   assert.deepEqual(sourced.stdout.trimEnd().split("\n"), [targets.socket, targets.keyFile, targets.coalescingConfig, targets.groundingConfig]);
   await write(targets.plistPath, plan.renderLaunchdPlist(targets));
   const converted = await execFileAsync("plutil", ["-convert", "json", "-o", "-", "--", targets.plistPath]);
   const plist = JSON.parse(converted.stdout);
-  assert.equal(plist.Label, "local.agent-harness");
+  assert.equal(plist.Label, "local.compass");
   assert.deepEqual(plist.ProgramArguments, [targets.wrapperPath]);
   assert.equal(plist.EnvironmentVariables.HOME, home);
   assert.equal(plist.StandardOutPath, targets.outLog);

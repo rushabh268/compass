@@ -220,7 +220,7 @@ test("Host-header validation: GET / with wrong Host header is rejected with 403/
   // RED: expects rejection (403 or 404), not 200
   assert.ok(res.statusCode === 403 || res.statusCode === 404, `Expected 403 or 404, got ${res.statusCode}`);
   // Verify no HTML leak
-  assert.equal(res.body.includes("Agent Harness Dashboard"), false, "Response must not leak HTML content");
+  assert.equal(res.body.includes("Compass Dashboard"), false, "Response must not leak HTML content");
   assert.equal(res.body.includes("metrics"), false, "Response must not leak internal paths");
 });
 
@@ -258,7 +258,7 @@ test("Host-header validation: GET / with correct Host header succeeds", { timeou
 
   // GREEN: correct Host header must succeed
   assert.equal(res.statusCode, 200);
-  assert.ok(res.body.includes("Agent Harness Dashboard"));
+  assert.ok(res.body.includes("Compass Dashboard"));
 });
 
 test("Host-header validation: GET / with localhost:<port> Host header succeeds", { timeout: 5_000 }, async (t) => {
@@ -295,7 +295,7 @@ test("Host-header validation: GET / with localhost:<port> Host header succeeds",
 
   // GREEN: localhost:<port> must be accepted (loopback-safe)
   assert.equal(res.statusCode, 200);
-  assert.ok(res.body.includes("Agent Harness Dashboard"));
+  assert.ok(res.body.includes("Compass Dashboard"));
 });
 
 test("Host-header validation: GET /metrics with localhost:<port> Host header succeeds", { timeout: 5_000 }, async (t) => {
@@ -415,7 +415,7 @@ test("Host-header validation: GET / with wrong port in Host header is rejected w
 
   // RED: wrong port must be rejected
   assert.ok(res.statusCode === 403 || res.statusCode === 404, `Expected 403 or 404, got ${res.statusCode}`);
-  assert.equal(res.body.includes("Agent Harness Dashboard"), false, "Response must not leak HTML content");
+  assert.equal(res.body.includes("Compass Dashboard"), false, "Response must not leak HTML content");
 });
 
 test("Host-header validation: GET / with foreign IP in Host header is rejected with 403/404", { timeout: 5_000 }, async (t) => {
@@ -452,7 +452,7 @@ test("Host-header validation: GET / with foreign IP in Host header is rejected w
 
   // RED: non-loopback IP must be rejected
   assert.ok(res.statusCode === 403 || res.statusCode === 404, `Expected 403 or 404, got ${res.statusCode}`);
-  assert.equal(res.body.includes("Agent Harness Dashboard"), false, "Response must not leak HTML content");
+  assert.equal(res.body.includes("Compass Dashboard"), false, "Response must not leak HTML content");
 });
 
 test("no-store on all responses: 404 unknown path has cache-control: no-store", { timeout: 5_000 }, async (t) => {

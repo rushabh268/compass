@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Agent Harness Grounding Policy",
-  "description": "Closed local configuration for optional Agent Harness grounding.",
+  "title": "Compass Grounding Policy",
+  "description": "Closed local configuration for optional Compass grounding.",
   "type": "object",
   "additionalProperties": false,
   "required": [

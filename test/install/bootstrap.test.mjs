@@ -41,8 +41,8 @@ async function exists(path) {
 }
 
 async function fixture(t) {
-  const home = await mkdtemp(join(tmpdir(), "agent-harness-install-home-"));
-  const repoRoot = await mkdtemp(join(tmpdir(), "agent-harness-install-repo-"));
+  const home = await mkdtemp(join(tmpdir(), "compass-install-home-"));
+  const repoRoot = await mkdtemp(join(tmpdir(), "compass-install-repo-"));
   t.after(async () => {
     await Promise.all([
       rm(home, { recursive: true, force: true }),
@@ -193,7 +193,7 @@ test("bootstrap validates all config transforms before mutating any config file"
   assert.equal(await readFile(targets.opencodeConfig, "utf8"), malformedOpenCode);
   assert.equal(await readFile(targets.zshenv, "utf8"), zshenvText);
   for (const path of [targets.claudeSettings, targets.opencodeConfig, targets.zshenv]) {
-    assert.equal(await exists(`${path}.agent-harness.bak`), false);
+    assert.equal(await exists(`${path}.compass.bak`), false);
     assert.equal(await exists(`${path}.bak`), false);
   }
 });
@@ -220,7 +220,7 @@ test("bootstrap is idempotent and does not duplicate hooks, plugins, or zshenv b
   for (const [path, content] of firstFiles) assert.deepEqual(secondFiles.get(path), content, `${path} changed on second run`);
   assert.equal(runner.calls.length, firstCalls);
   assert.equal(first.changed.claudeSettings, true);
-  assert.equal((await readFile(targets.zshenv, "utf8")).split("BEGIN agent-harness").length - 1, 1);
+  assert.equal((await readFile(targets.zshenv, "utf8")).split("BEGIN compass").length - 1, 1);
 });
 
 test("dryRun reports a plan without writing files or invoking commands", async (t) => {
@@ -243,7 +243,7 @@ test("runtime and launchd controls gate their injectable commands", async (t) =>
   assert.equal(commandText(runner.calls).includes("launchctl"), false);
 
   const secondRunner = fakeRunner();
-  const secondHome = await mkdtemp(join(tmpdir(), "agent-harness-install-command-home-"));
+  const secondHome = await mkdtemp(join(tmpdir(), "compass-install-command-home-"));
   t.after(() => rm(secondHome, { recursive: true, force: true }));
   await bootstrap({ home: secondHome, repoRoot, runCommand: secondRunner.runCommand, skipRuntime: false, skipLaunchd: false });
   assert.match(commandText(secondRunner.calls), /npm[\s\S]*install[\s\S]*node@24\.19\.0/);

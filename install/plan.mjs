@@ -32,7 +32,7 @@ export const GROUNDING_HOOK_EVENTS = Object.freeze(["SessionStart", "UserPromptS
 
 export const DEFAULT_ADAPTERS = Object.freeze(["claude", "opencode"]);
 const supportedAdapters = new Set([...DEFAULT_ADAPTERS, "codex"]);
-const zshenvBlockPattern = /^# BEGIN agent-harness\n[\s\S]*?^# END agent-harness\n?/gm;
+const zshenvBlockPattern = /^# BEGIN compass\n[\s\S]*?^# END compass\n?/gm;
 
 export function validateAdapters(adapters) {
   if (!Array.isArray(adapters) || adapters.length === 0 ||
@@ -48,7 +48,7 @@ export function assertAbsolutePath(path) {
   }
 }
 
-export function resolveTargets({ home, repoRoot, runtimeDir = join(home, ".local/share/agent-harness-runtime"), stateDir = join(home, ".local/state/agent-harness"), codexHome = join(home, ".codex") }) {
+export function resolveTargets({ home, repoRoot, runtimeDir = join(home, ".local/share/compass-runtime"), stateDir = join(home, ".local/state/compass"), codexHome = join(home, ".codex") }) {
   for (const path of [home, repoRoot, runtimeDir, stateDir, codexHome]) assertAbsolutePath(path);
   return {
     runtimeNodeBin: join(runtimeDir, "node_modules/node/bin/node"),
@@ -60,8 +60,8 @@ export function resolveTargets({ home, repoRoot, runtimeDir = join(home, ".local
     groundingConfig: join(stateDir, "grounding.json"),
     installationManifest: join(stateDir, "installation.json"),
     localBin: join(home, ".local/bin"),
-    wrapperPath: join(home, ".local/bin/agent-harness-supervisor"),
-    plistPath: join(home, "Library/LaunchAgents/local.agent-harness.plist"),
+    wrapperPath: join(home, ".local/bin/compass-supervisor"),
+    plistPath: join(home, "Library/LaunchAgents/local.compass.plist"),
     outLog: join(stateDir, "supervisor.out.log"),
     errLog: join(stateDir, "supervisor.err.log"),
     claudeSettings: join(home, ".claude/settings.json"),
@@ -95,7 +95,7 @@ export function renderSupervisorWrapper(targets) {
 export function renderLaunchdPlist(targets) {
   const home = dirname(targets.zshenv);
   const path = `${dirname(targets.runtimeNodeBin)}:${join(home, ".local/bin")}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>local.agent-harness</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>${xmlText(targets.wrapperPath)}</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <true/>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>HOME</key>\n    <string>${xmlText(home)}</string>\n    <key>PATH</key>\n    <string>${xmlText(path)}</string>\n  </dict>\n  <key>StandardOutPath</key>\n  <string>${xmlText(targets.outLog)}</string>\n  <key>StandardErrorPath</key>\n  <string>${xmlText(targets.errLog)}</string>\n</dict>\n</plist>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>local.compass</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>${xmlText(targets.wrapperPath)}</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <true/>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>HOME</key>\n    <string>${xmlText(home)}</string>\n    <key>PATH</key>\n    <string>${xmlText(path)}</string>\n  </dict>\n  <key>StandardOutPath</key>\n  <string>${xmlText(targets.outLog)}</string>\n  <key>StandardErrorPath</key>\n  <string>${xmlText(targets.errLog)}</string>\n</dict>\n</plist>\n`;
 }
 
 export function renderCoalescingConfig() {
@@ -136,11 +136,11 @@ export function codexGroundingHookCommand(targets) {
 }
 
 function groundingHookCommand(targets, platform) {
-  return `AGENT_HARNESS_GROUNDING_CONFIG=${shellQuote(targets.groundingConfig)} AGENT_HARNESS_STATE_DIR=${shellQuote(targets.stateDir)} ${hookCommand(targets, targets.groundingHook)} --platform ${shellQuote(platform)}`;
+  return `COMPASS_GROUNDING_CONFIG=${shellQuote(targets.groundingConfig)} COMPASS_STATE_DIR=${shellQuote(targets.stateDir)} ${hookCommand(targets, targets.groundingHook)} --platform ${shellQuote(platform)}`;
 }
 
 function hookCommand(targets, hook) {
-  return `AGENT_HARNESS_SOCKET=${shellQuote(targets.socket)} AGENT_HARNESS_KEY_FILE=${shellQuote(targets.keyFile)} ${shellQuote(targets.runtimeNodeBin)} ${shellQuote(hook)}`;
+  return `COMPASS_SOCKET=${shellQuote(targets.socket)} COMPASS_KEY_FILE=${shellQuote(targets.keyFile)} ${shellQuote(targets.runtimeNodeBin)} ${shellQuote(hook)}`;
 }
 
 function isRecord(value) {
@@ -235,7 +235,7 @@ export function removeCodexHooks(existing, targets, commands = [codexHookCommand
   return removeHooks(existing, commands, "Codex");
 }
 
-function parseJsonc(text) {
+export function parseJsonc(text) {
   let output = "";
   let quote = false;
   let escaped = false;
@@ -418,7 +418,7 @@ export function insertOpenCodePlugin(jsoncTextOrNull, targets) {
   if (Array.isArray(config.plugin) && config.plugin.includes(plugin)) return { text, changed: false };
   const property = topLevelProperty(text, "plugin");
   if (!property.valueStart) {
-    const root = topLevelProperty(text, "__agent_harness_missing_property__");
+    const root = topLevelProperty(text, "__compass_missing_property__");
     const body = text.slice(root.objectStart + 1, root.objectEnd);
     const needsComma = Object.keys(config).length > 0 && lastSignificant(text, root.objectStart + 1, root.objectEnd) !== ",";
     const indent = propertyIndent(text, body.search(/\S/) === -1 ? root.objectStart + 1 : root.objectStart + 1 + body.search(/\S/));
@@ -457,7 +457,7 @@ export function removeOpenCodePlugin(text, targets) {
 }
 
 export function zshenvBlock(targets) {
-  return `# BEGIN agent-harness\nexport AGENT_HARNESS_SOCKET=${shellQuote(targets.socket)}\nexport AGENT_HARNESS_KEY_FILE=${shellQuote(targets.keyFile)}\nexport AGENT_HARNESS_COALESCING_CONFIG=${shellQuote(targets.coalescingConfig)}\nexport AGENT_HARNESS_GROUNDING_CONFIG=${shellQuote(targets.groundingConfig)}\n# END agent-harness\n`;
+  return `# BEGIN compass\nexport COMPASS_SOCKET=${shellQuote(targets.socket)}\nexport COMPASS_KEY_FILE=${shellQuote(targets.keyFile)}\nexport COMPASS_COALESCING_CONFIG=${shellQuote(targets.coalescingConfig)}\nexport COMPASS_GROUNDING_CONFIG=${shellQuote(targets.groundingConfig)}\n# END compass\n`;
 }
 
 export function applyZshenv(textOrNull, targets) {

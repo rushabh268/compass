@@ -52,7 +52,7 @@ test("normal, linked, and nested worktrees share notes from the main checkout", 
   const nested = join(main, ".worktrees", "nested");
   await git(main, "worktree", "add", "-b", "feature/PROJ-123-linked", linked);
   await git(main, "worktree", "add", "-b", "feature/PROJ-123-nested", nested);
-  await note(join(main, ".agent-harness", "notes"), "Shared design decision from the main checkout");
+  await note(join(main, ".compass", "notes"), "Shared design decision from the main checkout");
 
   for (const worktree of [main, linked, nested]) {
     const snapshot = await warmed(worktree);
@@ -77,14 +77,37 @@ test("the environment notes override can select an independent notes directory",
   const { root, main } = await repository(t);
   const notes = join(root, "shared-notes");
   await note(notes, "Independent notes directory");
-  const previous = process.env.AGENT_HARNESS_NOTES_DIR;
+  const previous = process.env.COMPASS_NOTES_DIR;
   try {
-    process.env.AGENT_HARNESS_NOTES_DIR = notes;
+    process.env.COMPASS_NOTES_DIR = notes;
     const snapshot = await warmed(main, { notesDir: undefined });
     assert.match(snapshot.brief, /Independent notes directory/);
     assert.equal(snapshot.metadata.sources[0].ref, "context/status.md");
   } finally {
-    if (previous === undefined) delete process.env.AGENT_HARNESS_NOTES_DIR;
-    else process.env.AGENT_HARNESS_NOTES_DIR = previous;
+    if (previous === undefined) delete process.env.COMPASS_NOTES_DIR;
+    else process.env.COMPASS_NOTES_DIR = previous;
+  }
+});
+
+test("legacy notes require an explicit override and never merge with Compass notes", { timeout: 10_000 }, async (t) => {
+  const { main } = await repository(t);
+  await note(join(main, ".agent-harness", "notes"), "Legacy selected decision");
+  await note(join(main, ".compass", "notes"), "Compass default decision");
+  const keys = ["COMPASS_NOTES_DIR", "AGENT_HARNESS_NOTES_DIR"];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  try {
+    delete process.env.COMPASS_NOTES_DIR;
+    process.env.AGENT_HARNESS_NOTES_DIR = ".agent-harness/notes";
+    const legacy = await warmed(main, { notesDir: undefined });
+    assert.match(legacy.brief, /Legacy selected decision/);
+    assert.doesNotMatch(legacy.brief, /Compass default decision/);
+    process.env.COMPASS_NOTES_DIR = "";
+    const current = await warmed(main, { notesDir: undefined });
+    assert.match(current.brief, /Compass default decision/);
+    assert.doesNotMatch(current.brief, /Legacy selected decision/);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
   }
 });

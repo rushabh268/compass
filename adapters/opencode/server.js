@@ -1,3 +1,4 @@
+import { environmentValue } from "../../src/environment.mjs";
 import { utcMonth } from "../../src/grounding-event.mjs";
 import { randomUUID } from "node:crypto";
 
@@ -11,7 +12,7 @@ import { buildGroundingEvent, translateOpenCodeEvent } from "./translate.mjs";
 const REQUEST_TIMEOUT = 1_000;
 const DISPOSE_TIMEOUT = 100;
 const MAX_QUEUE_SIZE = 256;
-// How often drained grounding metadata is flushed into HarnessLedger-bound
+// How often drained grounding metadata is flushed into ledger-bound
 // GroundingInjection events. This runs on its own unref'd timer so it never
 // keeps the process alive and never runs from the system.transform hot path.
 const GROUNDING_DRAIN_INTERVAL_MS = 30_000;
@@ -64,7 +65,7 @@ export default async function OpenCodeShadow({
   let stopping = false;
   let authKey;
   try {
-    authKey = await readAuthKeyFile(process.env.AGENT_HARNESS_KEY_FILE);
+    authKey = await readAuthKeyFile(environmentValue("KEY_FILE"));
   } catch {
     // Hooks remain available and fail open when telemetry is unavailable.
   }
@@ -197,7 +198,7 @@ export default async function OpenCodeShadow({
     const controller = new AbortController();
     activeRequests.add(controller);
     try {
-      await request({ socketPath: process.env.AGENT_HARNESS_SOCKET, authKey, timeout: REQUEST_TIMEOUT, method, params, id, signal: controller.signal });
+      await request({ socketPath: environmentValue("SOCKET"), authKey, timeout: REQUEST_TIMEOUT, method, params, id, signal: controller.signal });
     } finally {
       activeRequests.delete(controller);
     }

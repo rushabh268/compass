@@ -1,3 +1,4 @@
+import { assertNoLegacyInstallation } from "./legacy.mjs";
 import { spawn } from "node:child_process";
 import os from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -109,10 +110,11 @@ export async function run({
   skipLaunchd = false,
   now = new Date(),
 } = {}) {
-  if (process.platform !== "darwin") throw new Error("agent-harness bootstrap requires macOS");
+  if (process.platform !== "darwin") throw new Error("compass bootstrap requires macOS");
   assertSupportedRuntime();
   adapters = validateAdapters(adapters);
   const targets = resolveTargets({ home, repoRoot, codexHome });
+  await assertNoLegacyInstallation({ home, targets, adapters });
   const runtimeDir = dirname(dirname(dirname(dirname(targets.runtimeNodeBin))));
   const packagePath = join(runtimeDir, "package.json");
 

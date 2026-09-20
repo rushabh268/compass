@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Agent Harness Policy",
-  "description": "Local policy for cooperative agent-harness operation.",
+  "title": "Compass Policy",
+  "description": "Local policy for cooperative compass operation.",
   "type": "object",
   "additionalProperties": false,
   "required": [

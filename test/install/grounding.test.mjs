@@ -59,12 +59,12 @@ for (const platform of ["claude", "codex"]) {
     assert.equal(targets.groundingHook, join(targets.claudeHook, "../../..", "src/grounding-hook.mjs"));
     targets.runtimeNodeBin = process.execPath;
     await mkdir(dirname(targets.groundingHook), { recursive: true });
-    await writeFile(targets.groundingHook, 'process.stdout.write(JSON.stringify({args:process.argv.slice(2),env:Object.fromEntries(Object.entries(process.env).filter(([key])=>key.startsWith("AGENT_HARNESS_")))}));');
-    const result = await exec("/bin/sh", ["-c", plan[`${platform}GroundingHookCommand`](targets)], { env: { HOME: setup.home, CODEX_HOME: setup.codexHome, AGENT_HARNESS_NOTES_DIR: "relative notes ' $literal" } });
+    await writeFile(targets.groundingHook, 'process.stdout.write(JSON.stringify({args:process.argv.slice(2),env:Object.fromEntries(Object.entries(process.env).filter(([key])=>key.startsWith("COMPASS_")))}));');
+    const result = await exec("/bin/sh", ["-c", plan[`${platform}GroundingHookCommand`](targets)], { env: { HOME: setup.home, CODEX_HOME: setup.codexHome, COMPASS_NOTES_DIR: "relative notes ' $literal" } });
     assert.deepEqual(JSON.parse(result.stdout), { args: ["--platform", platform], env: {
-      AGENT_HARNESS_SOCKET: targets.socket, AGENT_HARNESS_KEY_FILE: targets.keyFile,
-      AGENT_HARNESS_GROUNDING_CONFIG: targets.groundingConfig, AGENT_HARNESS_STATE_DIR: targets.stateDir,
-      AGENT_HARNESS_NOTES_DIR: "relative notes ' $literal",
+      COMPASS_SOCKET: targets.socket, COMPASS_KEY_FILE: targets.keyFile,
+      COMPASS_GROUNDING_CONFIG: targets.groundingConfig, COMPASS_STATE_DIR: targets.stateDir,
+      COMPASS_NOTES_DIR: "relative notes ' $literal",
     } });
   });
 }
@@ -99,7 +99,7 @@ for (const platform of ["claude", "codex"]) {
     const project = join(setup.home, "project with spaces");
     const notes = join(project, "custom notes", "initiative");
     await mkdir(notes, { recursive: true });
-    const env = { HOME: setup.home, CODEX_HOME: setup.codexHome, PATH: process.env.PATH, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", AGENT_HARNESS_NOTES_DIR: "custom notes" };
+    const env = { HOME: setup.home, CODEX_HOME: setup.codexHome, PATH: process.env.PATH, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", COMPASS_NOTES_DIR: "custom notes" };
     await exec("git", ["init", "-b", "grounding-fixture", project], { env });
     await exec("git", ["-C", project, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "fixture"], { env });
     await bootstrap({ ...setup, adapters: [platform] });

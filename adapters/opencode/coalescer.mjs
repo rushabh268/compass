@@ -1,3 +1,4 @@
+import { environmentValue } from "../../src/environment.mjs";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -9,6 +10,7 @@ const DEFAULT_WINDOW_MS = 10 * 60 * 1_000;
 const DEFAULT_QUEUE_MAX = 256;
 const MIN_QUEUE_MAX = 1;
 const MAX_QUEUE_MAX = 256;
+// Preserve legacy identity bytes so fallback aggregate IDs remain stable.
 const DEFAULT_HMAC_KEY = Buffer.from("agent-harness-opencode-coalescer-v1");
 // Cooperative labels that must always be preserved one-for-one regardless of
 // configuration. These event types are intentionally absent from
@@ -93,13 +95,13 @@ export async function loadCoalescingConfig(path) {
     preserveLabels: [...REQUIRED_PRESERVE_LABELS],
     dlpOverride: true,
   };
-  // Precedence: explicit argument > AGENT_HARNESS_COALESCING_CONFIG env override >
-  // <state dir>/coalescing.json, where the state dir is AGENT_HARNESS_STATE_DIR or
-  // the default ~/.local/state/agent-harness. An explicit env override that is set
+  // Precedence: explicit argument > Compass env (legacy alias if absent) >
+  // <state dir>/coalescing.json, where the state dir uses the same alias rule or
+  // the default ~/.local/state/compass. An explicit env override that is set
   // but missing/invalid fails closed (disabled) rather than falling back further.
   try {
-    const stateDir = process.env.AGENT_HARNESS_STATE_DIR ?? join(homedir(), ".local/state/agent-harness");
-    const effectivePath = path ?? process.env.AGENT_HARNESS_COALESCING_CONFIG ?? join(stateDir, "coalescing.json");
+    const stateDir = environmentValue("STATE_DIR") ?? join(homedir(), ".local/state/compass");
+    const effectivePath = path ?? environmentValue("COALESCING_CONFIG") ?? join(stateDir, "coalescing.json");
     if (typeof effectivePath !== "string" || effectivePath.length === 0) return disabled;
     const config = JSON.parse(await readFile(effectivePath, "utf8"));
     if (!validConfig(config)) throw new TypeError("invalid coalescing config");

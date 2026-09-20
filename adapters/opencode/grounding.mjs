@@ -1,3 +1,4 @@
+import { environmentValue } from "../../src/environment.mjs";
 import { randomUUID } from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
@@ -13,7 +14,7 @@ const MAX_RING_SIZE = 256;
 export function createGroundingCache({
   directory,
   worktree,
-  notesDir = process.env.AGENT_HARNESS_NOTES_DIR ?? "",
+  notesDir = environmentValue("NOTES_DIR") ?? "",
   loadConfig = loadGroundingConfig,
   clock = { now: () => Date.now() },
   timers = { setTimeout, clearTimeout },

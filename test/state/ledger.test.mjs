@@ -30,7 +30,7 @@ function event(runID, overrides = {}) {
 }
 
 async function fixture(t) {
-  const root = await mkdir(join(tmpdir(), `agent-harness-${process.pid}-${Date.now()}-${Math.random()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-${process.pid}-${Date.now()}-${Math.random()}`), { recursive: true });
   const path = join(root, "private", "ledger.sqlite");
   const ledger = openLedger({ path, hmacKey: key });
   t.after(() => ledger.close());
@@ -70,7 +70,7 @@ test("opens a hardened SQLite database with required settings", async (t) => {
 });
 
 test("rejects a symlinked database parent path", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-parent-link-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-parent-link-${process.pid}-${Date.now()}`), { recursive: true });
   const target = join(root, "target");
   await mkdir(target, { mode: 0o700 });
   const parent = join(root, "private");
@@ -80,7 +80,7 @@ test("rejects a symlinked database parent path", async () => {
 });
 
 test("rejects an existing database symlink", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-db-link-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-db-link-${process.pid}-${Date.now()}`), { recursive: true });
   const target = join(root, "target.sqlite");
   new DatabaseSync(target).close();
   const path = join(root, "ledger.sqlite");
@@ -90,7 +90,7 @@ test("rejects an existing database symlink", async () => {
 });
 
 test("rejects an existing database parent not mode 0700 without chmodding it", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-parent-mode-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-parent-mode-${process.pid}-${Date.now()}`), { recursive: true });
   const parent = join(root, "private");
   await mkdir(parent, { mode: 0o700 });
   await chmod(parent, 0o755);
@@ -108,7 +108,7 @@ test("configures a positive bounded SQLite busy timeout", async (t) => {
 });
 
 test("rejects invalid HMAC keys", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-key-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-key-${process.pid}-${Date.now()}`), { recursive: true });
   const path = join(root, "ledger.sqlite");
   for (const hmacKey of [undefined, "secret", Buffer.alloc(31), new Uint8Array(0)]) {
     assert.throws(() => openLedger({ path, hmacKey }), /hmacKey/i);
@@ -116,7 +116,7 @@ test("rejects invalid HMAC keys", async () => {
 });
 
 test("persists runs and events across reopen", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-reopen-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-reopen-${process.pid}-${Date.now()}`), { recursive: true });
   const path = join(root, "ledger.sqlite");
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
@@ -219,7 +219,7 @@ test("appends 2,000 events within a constant-time head-check budget", { timeout:
 });
 
 test("detects tampering and a wrong key", async () => {
-  const root = await mkdir(join(tmpdir(), `agent-harness-tamper-${process.pid}-${Date.now()}`), { recursive: true });
+  const root = await mkdir(join(tmpdir(), `compass-tamper-${process.pid}-${Date.now()}`), { recursive: true });
   const path = join(root, "ledger.sqlite");
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
@@ -239,7 +239,7 @@ test("detects tampering and a wrong key", async () => {
 });
 
 test("rejects transitions after direct run state tampering", async () => {
-  const path = join(tmpdir(), `agent-harness-state-tamper-${process.pid}-${Date.now()}.sqlite`);
+  const path = join(tmpdir(), `compass-state-tamper-${process.pid}-${Date.now()}.sqlite`);
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
   ledger.close();
@@ -255,7 +255,7 @@ test("rejects transitions after direct run state tampering", async () => {
 });
 
 test("rejects listing events after event body tampering", async () => {
-  const path = join(tmpdir(), `agent-harness-list-tamper-${process.pid}-${Date.now()}.sqlite`);
+  const path = join(tmpdir(), `compass-list-tamper-${process.pid}-${Date.now()}.sqlite`);
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
   ledger.append(event("run-1"));
@@ -271,7 +271,7 @@ test("rejects listing events after event body tampering", async () => {
 });
 
 test("detects deletion of the tail event", async () => {
-  const path = join(tmpdir(), `agent-harness-tail-delete-${process.pid}-${Date.now()}.sqlite`);
+  const path = join(tmpdir(), `compass-tail-delete-${process.pid}-${Date.now()}.sqlite`);
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
   ledger.append(event("run-1"));
@@ -293,7 +293,7 @@ test("rejects append when the authenticated run head is inconsistent", async (t)
     ["tampered commitment", "UPDATE runs SET commitment = 'tampered' WHERE run_id = 'run-1'"],
   ]) {
     await t.test(name, () => {
-      const path = join(tmpdir(), `agent-harness-append-head-${process.pid}-${Date.now()}-${Math.random()}.sqlite`);
+      const path = join(tmpdir(), `compass-append-head-${process.pid}-${Date.now()}-${Math.random()}.sqlite`);
       let ledger = openLedger({ path, hmacKey: key });
       ledger.createRun("run-1");
       ledger.append(event("run-1"));
@@ -324,7 +324,7 @@ test("threat model defines constant-time append integrity boundaries", async () 
 });
 
 test("detects deletion of all events from a nonempty run", async () => {
-  const path = join(tmpdir(), `agent-harness-all-delete-${process.pid}-${Date.now()}.sqlite`);
+  const path = join(tmpdir(), `compass-all-delete-${process.pid}-${Date.now()}.sqlite`);
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
   ledger.append(event("run-1"));
@@ -340,7 +340,7 @@ test("detects deletion of all events from a nonempty run", async () => {
 });
 
 test("rejects a tampered duplicate instead of returning a receipt", async () => {
-  const path = join(tmpdir(), `agent-harness-duplicate-tamper-${process.pid}-${Date.now()}.sqlite`);
+  const path = join(tmpdir(), `compass-duplicate-tamper-${process.pid}-${Date.now()}.sqlite`);
   let ledger = openLedger({ path, hmacKey: key });
   ledger.createRun("run-1");
   ledger.append(event("run-1"));
@@ -362,7 +362,7 @@ test("detects tampering of run integrity metadata", async (t) => {
     ["commitment", "tampered"],
   ]) {
     await t.test(column, () => {
-      const path = join(tmpdir(), `agent-harness-run-${column}-${process.pid}-${Date.now()}.sqlite`);
+      const path = join(tmpdir(), `compass-run-${column}-${process.pid}-${Date.now()}.sqlite`);
       let ledger = openLedger({ path, hmacKey: key });
       ledger.createRun("run-1");
       ledger.append(event("run-1"));
@@ -385,7 +385,7 @@ test("detects tampering of persisted run_id and dedupe_key columns", async (t) =
     ["dedupe_key", "tampered", "run-1"],
   ]) {
     await t.test(column, () => {
-      const path = join(tmpdir(), `agent-harness-column-${column}-${process.pid}-${Date.now()}.sqlite`);
+      const path = join(tmpdir(), `compass-column-${column}-${process.pid}-${Date.now()}.sqlite`);
       let ledger = openLedger({ path, hmacKey: key });
       ledger.createRun("run-1");
       if (column === "run_id") ledger.createRun("run-2");
@@ -408,7 +408,7 @@ test("requires body runID and dedupeKey to match persisted columns", async (t) =
     ["dedupeKey", "body-tampered"],
   ]) {
     await t.test(field, () => {
-      const path = join(tmpdir(), `agent-harness-body-${field}-${process.pid}-${Date.now()}.sqlite`);
+      const path = join(tmpdir(), `compass-body-${field}-${process.pid}-${Date.now()}.sqlite`);
       let ledger = openLedger({ path, hmacKey: key });
       ledger.createRun("run-1");
       ledger.append(event("run-1"));

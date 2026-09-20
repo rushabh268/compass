@@ -9,20 +9,20 @@ import Ajv2020 from "ajv/dist/2020.js";
 import { loadGroundingConfig } from "../adapters/opencode/grounding.mjs";
 
 const fields = ["schemaVersion", "enabled", "tokenBudget", "deadlineMs", "sources"];
-const originalStateDir = process.env.AGENT_HARNESS_STATE_DIR;
-const originalGroundingConfig = process.env.AGENT_HARNESS_GROUNDING_CONFIG;
+const originalStateDir = process.env.COMPASS_STATE_DIR;
+const originalGroundingConfig = process.env.COMPASS_GROUNDING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-grounding-policy-state-"));
-process.env.AGENT_HARNESS_STATE_DIR = hermeticStateDir;
-delete process.env.AGENT_HARNESS_GROUNDING_CONFIG;
+process.env.COMPASS_STATE_DIR = hermeticStateDir;
+delete process.env.COMPASS_GROUNDING_CONFIG;
 let environmentRestored = false;
 
 function restoreEnvironment() {
   if (environmentRestored) return;
   environmentRestored = true;
-  if (originalStateDir === undefined) delete process.env.AGENT_HARNESS_STATE_DIR;
-  else process.env.AGENT_HARNESS_STATE_DIR = originalStateDir;
-  if (originalGroundingConfig === undefined) delete process.env.AGENT_HARNESS_GROUNDING_CONFIG;
-  else process.env.AGENT_HARNESS_GROUNDING_CONFIG = originalGroundingConfig;
+  if (originalStateDir === undefined) delete process.env.COMPASS_STATE_DIR;
+  else process.env.COMPASS_STATE_DIR = originalStateDir;
+  if (originalGroundingConfig === undefined) delete process.env.COMPASS_GROUNDING_CONFIG;
+  else process.env.COMPASS_GROUNDING_CONFIG = originalGroundingConfig;
   rmSync(hermeticStateDir, { recursive: true, force: true });
 }
 process.once("exit", restoreEnvironment);
@@ -157,8 +157,8 @@ test("runtime uses the default state-dir path when the env override is clear", a
   try {
     await writeFile(join(stateDir, "grounding.json"), JSON.stringify(validConfig({ tokenBudget: 321 })));
     const config = await withEnv({
-      AGENT_HARNESS_STATE_DIR: stateDir,
-      AGENT_HARNESS_GROUNDING_CONFIG: undefined,
+      COMPASS_STATE_DIR: stateDir,
+      COMPASS_GROUNDING_CONFIG: undefined,
     }, () => loadGroundingConfig());
     assert.deepEqual(config, validConfig({ tokenBudget: 321 }));
   } finally {
@@ -174,8 +174,8 @@ test("runtime env config takes precedence over the default state-dir file", asyn
     const envPath = join(envDir, "override.json");
     await writeFile(envPath, JSON.stringify(validConfig({ tokenBudget: 222 })));
     const config = await withEnv({
-      AGENT_HARNESS_STATE_DIR: stateDir,
-      AGENT_HARNESS_GROUNDING_CONFIG: envPath,
+      COMPASS_STATE_DIR: stateDir,
+      COMPASS_GROUNDING_CONFIG: envPath,
     }, () => loadGroundingConfig());
     assert.equal(config.tokenBudget, 222);
   } finally {
@@ -195,8 +195,8 @@ test("runtime explicit path wins over both env and default paths", async () => {
     await writeFile(envPath, JSON.stringify(validConfig({ tokenBudget: 222 })));
     await writeFile(explicitPath, JSON.stringify(validConfig({ tokenBudget: 333 })));
     const config = await withEnv({
-      AGENT_HARNESS_STATE_DIR: stateDir,
-      AGENT_HARNESS_GROUNDING_CONFIG: envPath,
+      COMPASS_STATE_DIR: stateDir,
+      COMPASS_GROUNDING_CONFIG: envPath,
     }, () => loadGroundingConfig(explicitPath));
     assert.equal(config.tokenBudget, 333);
   } finally {

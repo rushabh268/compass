@@ -1,5 +1,5 @@
 #!/bin/sh
-# One-command installer for the agent-harness shadow harness.
+# One-command installer for the compass shadow harness.
 #
 # Works on any macOS machine that has Node/npm available: it uses npx to run the
 # bootstrapper under a pinned Node 24.19.0, sidestepping whatever Node version the
@@ -13,7 +13,7 @@
 set -eu
 
 if [ "$(uname -s)" != "Darwin" ]; then
-  echo "agent-harness install requires macOS (Darwin); detected $(uname -s)." >&2
+  echo "compass install requires macOS (Darwin); detected $(uname -s)." >&2
   exit 1
 fi
 

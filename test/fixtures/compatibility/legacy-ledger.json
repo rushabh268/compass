@@ -1,0 +1,93 @@
+{
+  "baseline": "c1d4f1cbfe7cf74d3dc8fecdf4a482dff00c6b3e",
+  "input": {
+    "hook_event_name": "PostToolUse",
+    "session_id": "synthetic-session",
+    "tool_use_id": "synthetic-use",
+    "tool_name": "Bash"
+  },
+  "translated": {
+    "schemaVersion": 1,
+    "eventID": "691112e5326bad0c557e9274ed6f857d477a93ef534c7b1613aba64068effdff",
+    "runID": "094e1986030912b0c04bf25c1b9ae439066247bf40d876ea0542424ea1336d9f",
+    "platform": "claude",
+    "sessionHMAC": "58d3fb09b0f60b48f19b698b0bd18de1962eacbbbee4bd9742f2da879ce6d0d4",
+    "eventType": "PostToolUse",
+    "timestamp": "2026-08-24T12:00:00.000Z",
+    "dedupeKey": "7393d8f34ad9e435c2a24cde2abf2e8f879f092b12f52df730705c4563c9bb72",
+    "adapterVersion": "1",
+    "toolName": "Bash"
+  },
+  "receipt": {
+    "event": {
+      "schemaVersion": 1,
+      "eventID": "691112e5326bad0c557e9274ed6f857d477a93ef534c7b1613aba64068effdff",
+      "runID": "094e1986030912b0c04bf25c1b9ae439066247bf40d876ea0542424ea1336d9f",
+      "platform": "claude",
+      "sessionHMAC": "58d3fb09b0f60b48f19b698b0bd18de1962eacbbbee4bd9742f2da879ce6d0d4",
+      "eventType": "PostToolUse",
+      "timestamp": "2026-08-24T12:00:00.000Z",
+      "dedupeKey": "7393d8f34ad9e435c2a24cde2abf2e8f879f092b12f52df730705c4563c9bb72",
+      "adapterVersion": "1",
+      "toolName": "Bash"
+    },
+    "previousHMAC": "",
+    "hmac": "4bb365a8ff07ab60ff3eec8061068f8f007c14acb438d7669793cbb4682ce2fd",
+    "inserted": true
+  },
+  "rows": {
+    "runs": [
+      {
+        "run_id": "094e1986030912b0c04bf25c1b9ae439066247bf40d876ea0542424ea1336d9f",
+        "state": "CREATED",
+        "event_count": 1,
+        "head_hmac": "4bb365a8ff07ab60ff3eec8061068f8f007c14acb438d7669793cbb4682ce2fd",
+        "commitment_hmac": "745ff9fd0e908d80dca1271bc1448acc0e94ad460ff17f43b04ab0651fefb0e4",
+        "commitment": "745ff9fd0e908d80dca1271bc1448acc0e94ad460ff17f43b04ab0651fefb0e4",
+        "last_event_unix": 1789874949,
+        "activity_hmac": "b07547cef915fc9ae724101e0af5769fabb9e9d892352353d83b313c906fab7b"
+      }
+    ],
+    "events": [
+      {
+        "id": 1,
+        "run_id": "094e1986030912b0c04bf25c1b9ae439066247bf40d876ea0542424ea1336d9f",
+        "dedupe_key": "7393d8f34ad9e435c2a24cde2abf2e8f879f092b12f52df730705c4563c9bb72",
+        "body": "{\"schemaVersion\":1,\"eventID\":\"691112e5326bad0c557e9274ed6f857d477a93ef534c7b1613aba64068effdff\",\"runID\":\"094e1986030912b0c04bf25c1b9ae439066247bf40d876ea0542424ea1336d9f\",\"platform\":\"claude\",\"sessionHMAC\":\"58d3fb09b0f60b48f19b698b0bd18de1962eacbbbee4bd9742f2da879ce6d0d4\",\"eventType\":\"PostToolUse\",\"timestamp\":\"2026-08-24T12:00:00.000Z\",\"dedupeKey\":\"7393d8f34ad9e435c2a24cde2abf2e8f879f092b12f52df730705c4563c9bb72\",\"adapterVersion\":\"1\",\"toolName\":\"Bash\"}",
+        "previous_hmac": "",
+        "hmac": "4bb365a8ff07ab60ff3eec8061068f8f007c14acb438d7669793cbb4682ce2fd"
+      }
+    ]
+  },
+  "summary": [
+    {
+      "schemaVersion": 1,
+      "eventID": "1213650367b78dd8a17040ac358fec5318efc1bcbc7e4d214bc9ed7cab4c75bf",
+      "runID": "2ab15e33b8787143e21e1034634a7afa2dbe43f8cdb014d44ae6949147f81bca",
+      "platform": "opencode",
+      "sessionHMAC": "5dec3af1d8b616bc4574c84f63a4933553979325a36aa54fb9df5d315923b5b7",
+      "eventType": "HarnessMetrics",
+      "timestamp": "2026-08-24T12:00:00.000Z",
+      "dedupeKey": "1b6f52f9ddb2248bd1a9cfc48cdf02ab402e2f62bb5b384a7ff587d032a790ff",
+      "adapterVersion": "1",
+      "summary": {
+        "coalesced": 1,
+        "messagePartDelta": 0,
+        "messagePartUpdate": 0,
+        "messageUpdate": 0,
+        "sessionStatus": 0,
+        "sessionDiff": 0,
+        "todoUpdate": 0,
+        "noise": 1,
+        "queueFull": 0
+      }
+    }
+  ],
+  "rpc": {
+    "version": 1,
+    "id": "synthetic-request",
+    "method": "health",
+    "params": {},
+    "auth": "ce91663d16e6ae379b9dcd67ca095e332d59b47201913f4446a1390e798c8d8a"
+  }
+}

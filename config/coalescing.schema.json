@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Agent Harness Event Coalescing Policy",
+  "title": "Compass Event Coalescing Policy",
   "description": "Closed cooperative coalescing configuration for reducing event volume while preserving critical audit labels.",
   "type": "object",
   "additionalProperties": false,

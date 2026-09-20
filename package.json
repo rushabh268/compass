@@ -1,16 +1,16 @@
 {
-  "name": "agent-harness",
+  "name": "compass",
   "version": "0.1.0",
   "description": "A local companion for coding-agent context, metadata auditing, and visibility.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rushabh268/agent-harness.git"
+    "url": "https://github.com/rushabh268/compass.git"
   },
   "private": true,
   "type": "module",
   "bin": {
-    "agent-harness": "src/cli.mjs"
+    "compass": "src/cli.mjs"
   },
   "engines": {
     "node": ">=24.19 <25"

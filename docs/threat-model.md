@@ -2,7 +2,7 @@
 
 ## Scope
 
-The companion harness supplies selected project context and records limited
+Compass supplies selected project context and records limited
 activity metadata alongside native coding tools. It does not orchestrate agents
 or replace their execution and approvals. This document also defines proposed
 controls for later publication and gateway components.
@@ -103,5 +103,5 @@ approvals.
 The enforced-mode acceptance suite will use synthetic fixtures to prove that an
 admitted agent cannot read publisher credentials, connect directly to
 publication endpoints, or forge approval through the Unix socket. Until those
-tests and the required isolation components exist, the harness remains in
+tests and the required isolation components exist, Compass remains in
 cooperative mode.

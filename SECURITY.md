@@ -15,7 +15,7 @@ sensitive details. Include affected versions and a synthetic reproducer when a
 private channel is established.
 
 Only the current release line is maintained. Hook interfaces change; report
-the coding-tool version as well as the Agent Harness version.
+the coding-tool version as well as the Compass version.
 
 ## What the controls establish
 

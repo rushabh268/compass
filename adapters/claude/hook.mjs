@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { environmentValue } from "../../src/environment.mjs";
 import { readAuthKeyFile } from "../../src/paths.mjs";
 import { request } from "../../src/supervisor/client.mjs";
 import { claudeRunID, translateClaudeHook } from "./translate.mjs";
@@ -22,8 +23,8 @@ async function main() {
   let authKey;
   try {
     const payload = await readInput();
-    authKey = await readAuthKeyFile(process.env.AGENT_HARNESS_KEY_FILE);
-    const options = { socketPath: process.env.AGENT_HARNESS_SOCKET, authKey, timeout: 1_000 };
+    authKey = await readAuthKeyFile(environmentValue("KEY_FILE"));
+    const options = { socketPath: environmentValue("SOCKET"), authKey, timeout: 1_000 };
     const runID = claudeRunID(payload?.session_id, authKey);
     await request({ ...options, method: "ensureRun", params: { runID }, id: `ensure:${runID}` });
     const event = translateClaudeHook(payload, { authKey, occurrenceID: randomUUID() });

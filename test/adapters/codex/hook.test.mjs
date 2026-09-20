@@ -29,7 +29,7 @@ function payload(overrides = {}) {
 }
 
 function launchHook(t, env) {
-  const childEnv = { ...process.env, AGENT_HARNESS_SOCKET: undefined, AGENT_HARNESS_KEY_FILE: undefined, ...env };
+  const childEnv = { ...process.env, COMPASS_SOCKET: undefined, COMPASS_KEY_FILE: undefined, ...env };
   delete childEnv.NODE_OPTIONS;
   for (const key of Object.keys(childEnv)) if (childEnv[key] === undefined) delete childEnv[key];
   const started = performance.now();
@@ -65,7 +65,7 @@ async function fixture(t) {
   t.after(async () => { await supervisor.close(); ledger.close(); await rm(root, { recursive: true, force: true }); });
   return {
     root, keyFile, socketPath, ledgerDir, ledger,
-    env: { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile },
+    env: { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: keyFile },
   };
 }
 
@@ -199,7 +199,7 @@ test("Codex missing, malformed, permissive and symlinked keys fail silently with
   await symlink(keyFile, linkedKey);
   await symlink(root, linkedParent);
   for (const value of [undefined, join(root, "missing.key"), permissive, shortKey, wrongKey, linkedKey, join(linkedParent, "auth.key"), root]) {
-    const { result } = await runHook(t, JSON.stringify(payload()), { ...env, AGENT_HARNESS_KEY_FILE: value });
+    const { result } = await runHook(t, JSON.stringify(payload()), { ...env, COMPASS_KEY_FILE: value });
     assert.deepEqual(result, silentExit);
   }
   assert.deepEqual(ledger.status(), { runs: 0, events: 0, states: {} });
@@ -208,7 +208,7 @@ test("Codex missing, malformed, permissive and symlinked keys fail silently with
 test("Codex an unavailable or unspecified supervisor fails open", async (t) => {
   const { root, env, ledger } = await fixture(t);
   for (const socketPath of [undefined, join(root, "missing.sock")]) {
-    const { result } = await runHook(t, JSON.stringify(payload()), { ...env, AGENT_HARNESS_SOCKET: socketPath });
+    const { result } = await runHook(t, JSON.stringify(payload()), { ...env, COMPASS_SOCKET: socketPath });
     assert.deepEqual(result, silentExit);
   }
   assert.equal(ledger.status().runs, 0);
@@ -253,7 +253,7 @@ async function socketFixture(t, onRequest) {
     await new Promise((resolve) => server.close(resolve));
     await rm(root, { recursive: true, force: true });
   });
-  return { env: { AGENT_HARNESS_SOCKET: socketPath, AGENT_HARNESS_KEY_FILE: keyFile }, sockets, closed, methods };
+  return { env: { COMPASS_SOCKET: socketPath, COMPASS_KEY_FILE: keyFile }, sockets, closed, methods };
 }
 
 test("Codex times out and closes a supervisor socket that never replies", async (t) => {

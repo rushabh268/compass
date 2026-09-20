@@ -15,19 +15,19 @@ import { openLedger } from "../../../src/state/ledger.mjs";
 import { startSupervisor } from "../../../src/supervisor/server.mjs";
 
 const authKey = Buffer.alloc(32, 0x62);
-const originalStateDir = process.env.AGENT_HARNESS_STATE_DIR;
-const originalCoalescingConfig = process.env.AGENT_HARNESS_COALESCING_CONFIG;
+const originalStateDir = process.env.COMPASS_STATE_DIR;
+const originalCoalescingConfig = process.env.COMPASS_COALESCING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-opencode-state-"));
-process.env.AGENT_HARNESS_STATE_DIR = hermeticStateDir;
-delete process.env.AGENT_HARNESS_COALESCING_CONFIG;
+process.env.COMPASS_STATE_DIR = hermeticStateDir;
+delete process.env.COMPASS_COALESCING_CONFIG;
 let environmentRestored = false;
 function restoreEnvironment() {
   if (environmentRestored) return;
   environmentRestored = true;
-  if (originalStateDir === undefined) delete process.env.AGENT_HARNESS_STATE_DIR;
-  else process.env.AGENT_HARNESS_STATE_DIR = originalStateDir;
-  if (originalCoalescingConfig === undefined) delete process.env.AGENT_HARNESS_COALESCING_CONFIG;
-  else process.env.AGENT_HARNESS_COALESCING_CONFIG = originalCoalescingConfig;
+  if (originalStateDir === undefined) delete process.env.COMPASS_STATE_DIR;
+  else process.env.COMPASS_STATE_DIR = originalStateDir;
+  if (originalCoalescingConfig === undefined) delete process.env.COMPASS_COALESCING_CONFIG;
+  else process.env.COMPASS_COALESCING_CONFIG = originalCoalescingConfig;
   rmSync(hermeticStateDir, { recursive: true, force: true });
 }
 process.once("exit", restoreEnvironment);
@@ -193,7 +193,7 @@ function captureGlobalTimer(delay) {
 
 test("event and tool hooks append serially, deduplicate replay, and persist no raw content", async (t) => {
   const { keyFile, socketPath, ledger } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({ directory: "/raw/directory", worktree: "/raw/worktree" });
     await hooks.event({ event: {
       id: "native-event", type: "session.created",
@@ -220,7 +220,7 @@ test("event payloads and real two-argument tool hooks persist observe decisions 
   const eventSentinel = "Authorization: Bearer b7Qx_2mN9-vR4.kL8sP0";
   const beforeSentinel = "token: 'tK9_mP4-vQ7.zR2'";
   const afterSentinel = "grafana: glsa_QWxwaGFCZXRhR2FtbWFEZWx0YQ";
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     await hooks.event({ event: {
       id: "native-event",
@@ -262,7 +262,7 @@ test("event payloads and real two-argument tool hooks persist observe decisions 
 });
 
 test("host hooks return immediately and unavailable supervisor fails open", async () => {
-  await withEnv({ AGENT_HARNESS_KEY_FILE: "/missing/key", AGENT_HARNESS_SOCKET: "/missing/socket" }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: "/missing/key", COMPASS_SOCKET: "/missing/socket" }, async () => {
     const hooks = await OpenCodeShadow({});
     assert.equal(await hooks.event({ event: { type: "session.created", sessionID: "secret" } }), undefined);
     assert.equal(await hooks["tool.execute.before"]({ sessionID: "secret", tool: "bash" }, { args: "secret" }), undefined);
@@ -272,7 +272,7 @@ test("host hooks return immediately and unavailable supervisor fails open", asyn
 
 test("dispose drains queued events before returning", async (t) => {
   const { keyFile, socketPath, ledger } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 8; index += 1) {
       await hooks.event({ event: { type: "session.updated", sessionID: "session", id: `event-${index}` } });
@@ -289,7 +289,7 @@ test("queue is bounded while the supervisor is stalled and retains only translat
   const keyFile = join(root, "auth.key");
   await writeFile(keyFile, authKey, { mode: 0o600 });
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 1_024; index += 1) {
       const event = { type: "session.updated", sessionID: `session-${index}`, id: `event-${index}`, raw: `RAW-${index}` };
@@ -328,7 +328,7 @@ test("full stalled queue drops an event before inspecting its payload", async (t
   const keyFile = join(root, "auth.key");
   await writeFile(keyFile, authKey, { mode: 0o600 });
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     try {
       for (let index = 0; index < 256; index += 1) {
@@ -369,7 +369,7 @@ test("pty lifecycle events do not create pty-as-session runs", async (t) => {
   const keyFile = join(root, "auth.key");
   await writeFile(keyFile, authKey, { mode: 0o600 });
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     hooks.event({ event: {
       id: "pty-created",
@@ -401,7 +401,7 @@ test("dispose aborts the active request, drops pending work, opens no later conn
   };
   t.after(() => { Buffer.prototype.fill = originalFill; });
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 64; index += 1) hooks.event({ event: { type: "session.updated", sessionID: "session", id: `pending-${index}` } });
     await waitFor(() => supervisor.connections === 1);
@@ -418,7 +418,7 @@ test("dispose aborts the active request, drops pending work, opens no later conn
 
 test("host hooks fail open when coalescer.push throws", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     const originalGetTime = Date.prototype.getTime;
     Date.prototype.getTime = function getTime() {
@@ -447,9 +447,9 @@ test("disabled coalescing drops PTY and all global noise without evicting queued
   await writeFile(keyFile, authKey, { mode: 0o600 });
 
   await withEnv({
-    AGENT_HARNESS_KEY_FILE: keyFile,
-    AGENT_HARNESS_SOCKET: supervisor.socketPath,
-    AGENT_HARNESS_COALESCING_CONFIG: configPath,
+    COMPASS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: supervisor.socketPath,
+    COMPASS_COALESCING_CONFIG: configPath,
   }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 4; index += 1) {
@@ -502,9 +502,9 @@ test("RED: disabled, missing, and invalid config still scans global noise for DL
       if (mode === "invalid") await writeFile(configPath, "{ definitely not json");
 
       await withEnv({
-        AGENT_HARNESS_KEY_FILE: keyFile,
-        AGENT_HARNESS_SOCKET: supervisor.socketPath,
-        AGENT_HARNESS_COALESCING_CONFIG: mode === "missing" ? join(root, "missing.json") : configPath,
+        COMPASS_KEY_FILE: keyFile,
+        COMPASS_SOCKET: supervisor.socketPath,
+        COMPASS_COALESCING_CONFIG: mode === "missing" ? join(root, "missing.json") : configPath,
       }, async () => {
         const hooks = await OpenCodeShadow({});
         for (const [index, type] of globalNoiseTypes.entries()) {
@@ -542,9 +542,9 @@ test("queue-full admission prioritizes DLP decisions and lifecycle events and co
   const secret = "Authorization: Bearer b7Qx_2mN9-vR4.kL8sP0";
 
   await withEnv({
-    AGENT_HARNESS_KEY_FILE: keyFile,
-    AGENT_HARNESS_SOCKET: supervisor.socketPath,
-    AGENT_HARNESS_COALESCING_CONFIG: configPath,
+    COMPASS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: supervisor.socketPath,
+    COMPASS_COALESCING_CONFIG: configPath,
   }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 4; index += 1) {
@@ -582,9 +582,9 @@ test("all-priority queue saturation is best-effort and increments global queueFu
   await writeFile(keyFile, authKey, { mode: 0o600 });
 
   await withEnv({
-    AGENT_HARNESS_KEY_FILE: keyFile,
-    AGENT_HARNESS_SOCKET: supervisor.socketPath,
-    AGENT_HARNESS_COALESCING_CONFIG: configPath,
+    COMPASS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: supervisor.socketPath,
+    COMPASS_COALESCING_CONFIG: configPath,
   }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 3; index += 1) {
@@ -616,9 +616,9 @@ test("RED: HarnessMetrics eviction defers queueFull accounting without exceeding
   await writeFile(keyFile, authKey, { mode: 0o600 });
 
   await withEnv({
-    AGENT_HARNESS_KEY_FILE: keyFile,
-    AGENT_HARNESS_SOCKET: supervisor.socketPath,
-    AGENT_HARNESS_COALESCING_CONFIG: configPath,
+    COMPASS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: supervisor.socketPath,
+    COMPASS_COALESCING_CONFIG: configPath,
   }, async () => {
     const hooks = await OpenCodeShadow({});
     hooks.event({ event: { id: "active-lifecycle", type: "session.created", sessionID: "active-session" } });
@@ -671,9 +671,9 @@ test("dispose flushes summaries and queue-full metrics and cancels coalescer tim
   });
 
   await withEnv({
-    AGENT_HARNESS_KEY_FILE: keyFile,
-    AGENT_HARNESS_SOCKET: supervisor.socketPath,
-    AGENT_HARNESS_COALESCING_CONFIG: configPath,
+    COMPASS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: supervisor.socketPath,
+    COMPASS_COALESCING_CONFIG: configPath,
   }, async () => {
     const hooks = await OpenCodeShadow({});
     for (let index = 0; index < 256; index += 1) {
@@ -717,9 +717,9 @@ test("keeps a summary pending until append ACK and retries failed or aborted app
       await writeFile(keyFile, authKey, { mode: 0o600 });
 
       await withEnv({
-        AGENT_HARNESS_KEY_FILE: keyFile,
-        AGENT_HARNESS_SOCKET: supervisor.socketPath,
-        AGENT_HARNESS_COALESCING_CONFIG: configPath,
+        COMPASS_KEY_FILE: keyFile,
+        COMPASS_SOCKET: supervisor.socketPath,
+        COMPASS_COALESCING_CONFIG: configPath,
       }, async () => {
         const hooks = await OpenCodeShadow({});
         hooks.event({ event: {
@@ -749,9 +749,9 @@ test("real message.part.delta envelopes coalesce and DLP override preserves the 
     properties: { part: { id: "part-1", sessionID: "delta-session", messageID: "message-1", delta } },
   });
   await withEnv({
-    AGENT_HARNESS_KEY_FILE: keyFile,
-    AGENT_HARNESS_SOCKET: socketPath,
-    AGENT_HARNESS_COALESCING_CONFIG: configPath,
+    COMPASS_KEY_FILE: keyFile,
+    COMPASS_SOCKET: socketPath,
+    COMPASS_COALESCING_CONFIG: configPath,
   }, async () => {
     const hooks = await OpenCodeShadow({});
     await hooks.event({ event: safe("delta-safe-1", "safe") });
@@ -776,7 +776,7 @@ test("real message.part.delta envelopes coalesce and DLP override preserves the 
 
 test("RED: experimental.chat.system.transform hook registered, NO chat.message hook", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
     assert.equal(typeof hooks["experimental.chat.system.transform"], "function", "experimental.chat.system.transform hook must exist");
     assert.equal(typeof hooks["chat.message"], "undefined", "chat.message hook must NOT exist (replaced by system.transform)");
@@ -786,7 +786,7 @@ test("RED: experimental.chat.system.transform hook registered, NO chat.message h
 
 test("RED: experimental.chat.system.transform with cold cache pushes nothing and records nothing", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
     const hooks = await OpenCodeShadow({
       _groundingCache: {
@@ -809,7 +809,7 @@ test("RED: experimental.chat.system.transform with cold cache pushes nothing and
 
 test("RED: experimental.chat.system.transform with warmed cache pushes brief onto output.system and records", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
     const briefText = "Project context from vault";
     const snapshot = {
@@ -848,7 +848,7 @@ test("RED: experimental.chat.system.transform with warmed cache pushes brief ont
 
 test("RED: experimental.chat.system.transform fails open without creating or replacing a non-array system", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
     const snapshot = { brief: "Project context", metadata: {} };
     const hooks = await OpenCodeShadow({
@@ -879,7 +879,7 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with cold cache"
   const { keyFile, socketPath } = await fixture(t);
   const spies = { fsReadFile: 0, fsStat: 0, fsReaddir: 0, gitExecFile: 0, socketWrite: 0 };
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const spiedFs = {
       async readFile() { spies.fsReadFile += 1; return ""; },
       async stat() { spies.fsStat += 1; return { mtimeMs: 0, size: 0 }; },
@@ -912,7 +912,7 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with warmed cach
   await writeFile(keyFile, authKey, { mode: 0o600 });
   const spies = { fsReadFile: 0, fsStat: 0, fsReaddir: 0, gitExecFile: 0, socketWrite: 0 };
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const clock = fakeClock();
     const timers = fakeTimers(clock);
     let cache;
@@ -924,8 +924,8 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with warmed cach
       async stat() { spies.fsStat += 1; return { mtimeMs: 1, size: 32 }; },
       async readdir(path) {
         spies.fsReaddir += 1;
-        if (path === "/worktree/.agent-harness/notes") return [{ name: "initiative-x", isDirectory: () => true }];
-        if (path === "/worktree/.agent-harness/notes/initiative-x") return [{ name: "overview.md", isDirectory: () => false }];
+        if (path === "/worktree/.compass/notes") return [{ name: "initiative-x", isDirectory: () => true }];
+        if (path === "/worktree/.compass/notes/initiative-x") return [{ name: "overview.md", isDirectory: () => false }];
         return [];
       },
     };
@@ -1003,7 +1003,7 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with warmed cach
 
 test("RED: experimental.chat.system.transform fail-open when snapshot() throws", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({
       _groundingCache: {
         snapshot: () => { throw new Error("snapshot failure"); },
@@ -1024,7 +1024,7 @@ test("RED: experimental.chat.system.transform fail-open when snapshot() throws",
 
 test("RED: experimental.chat.system.transform fail-open when recordInjection() throws", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const snapshot = {
       brief: "Project context",
       metadata: {
@@ -1060,7 +1060,7 @@ test("RED: experimental.chat.system.transform fail-open when recordInjection() t
 test("RED: experimental.chat.system.transform pushes snapshot.brief VERBATIM (no hot-path redaction) and calls recordInjection", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
     const redactedBrief = "Project context [REDACTED:bearer-token]. Verify before using.";
     const snapshot = {
@@ -1111,7 +1111,7 @@ test("RED: two system.transform calls with SAME metadata but DIFFERENT occurrenc
     latencyMs: 12,
   };
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     let callCount = 0;
     const drainedMetadata = [];
 
@@ -1162,7 +1162,7 @@ test("RED: two system.transform calls with SAME metadata but DIFFERENT occurrenc
 test("RED: tool.execute.after still calls noteToolActivity on grounding cache", async (t) => {
   const { keyFile, socketPath, ledger } = await fixture(t);
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const noteToolActivityCalls = [];
     const hooks = await OpenCodeShadow({
       _groundingCache: {
@@ -1184,7 +1184,7 @@ test("RED: tool.execute.after still calls noteToolActivity on grounding cache", 
 test("RED: dispose() calls stop() on grounding cache synchronously", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     let stopCalled = false;
     const hooks = await OpenCodeShadow({
       _groundingCache: {
@@ -1204,7 +1204,7 @@ test("RED: dispose() calls stop() on grounding cache synchronously", async (t) =
 test("tool.execute.after enqueues telemetry unchanged AND calls noteToolActivity on grounding cache", async (t) => {
   const { keyFile, socketPath, ledger } = await fixture(t);
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const noteToolActivityCalls = [];
     const hooks = await OpenCodeShadow({
       _groundingCache: {
@@ -1227,7 +1227,7 @@ test("tool.execute.after enqueues telemetry unchanged AND calls noteToolActivity
 test("dispose() cancels grounding background timer synchronously", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     let timerStopped = false;
     const hooks = await OpenCodeShadow({
       _groundingCache: {
@@ -1260,7 +1260,7 @@ test("GroundingInjection drain persists one closed metadata event and no raw con
     latencyMs: 12,
   };
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const hooks = await OpenCodeShadow({
       _groundingCache: {
         snapshot: () => null,
@@ -1301,7 +1301,7 @@ test("plugin factory returns synchronously without startup I/O (no sync git/fs/s
   const originalRequest = http.request;
   let socketCallsDuringSyncInit = 0;
 
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     // Measure if factory blocks on I/O (factory should return immediately)
     const startTime = process.hrtime.bigint();
     const hooks = await OpenCodeShadow({});
@@ -1327,7 +1327,7 @@ test("default grounding drain changes its retention epoch across UTC months", as
     constructor(...args) { super(...(args.length ? args : [month])); }
   };
   t.after(() => { globalThis.Date = ActualDate; });
-  await withEnv({ AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: supervisor.socketPath }, async () => {
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
     const hooks = await OpenCodeShadow({ _groundingCache: {
       start() {}, stop() {},
       drainMetadata: () => [{ metadata: { sources: [], matchReason: "none" }, occurrenceID: `month-${++occurrence}` }],

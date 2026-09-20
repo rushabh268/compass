@@ -21,14 +21,14 @@ async function fixture(t) {
   await fs.mkdir(repo);
   await execute('git', ['-C', repo, 'init', '--initial-branch=feature/PROJ-123']);
   await execute('git', ['-C', repo, '-c', 'commit.gpgsign=false', '-c', 'user.name=Fixture', '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty', '-m', 'baseline']);
-  const notes = join(repo, '.agent-harness/notes/context');
+  const notes = join(repo, '.compass/notes/context');
   await fs.mkdir(notes, { recursive: true });
   await fs.writeFile(join(notes, 'status.md'), 'PROJ-123 NATIVE-SOURCE-PRIVATE-BODY\nAuthorization: Bearer b7Qx_2mN9-vR4.kL8sP0\n');
   const config = join(root, 'grounding.json');
   const keyFile = join(root, 'auth.key');
   await fs.writeFile(config, JSON.stringify(policy));
   await fs.writeFile(keyFile, key, { mode: 0o600 });
-  return { root, repo, notes, config, env: { AGENT_HARNESS_GROUNDING_CONFIG: config, AGENT_HARNESS_STATE_DIR: root, AGENT_HARNESS_KEY_FILE: keyFile, AGENT_HARNESS_SOCKET: join(root, 'missing.sock'), AGENT_HARNESS_NOTES_DIR: '' } };
+  return { root, repo, notes, config, env: { COMPASS_GROUNDING_CONFIG: config, COMPASS_STATE_DIR: root, COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: join(root, 'missing.sock'), COMPASS_NOTES_DIR: '' } };
 }
 function run(platform, payload, env, { holdInput = false } = {}) {
   return new Promise((resolve, reject) => {
@@ -102,14 +102,14 @@ test('native Unicode content obeys complete wrapper hard cap and smaller configu
 test('missing key and stalled audit cannot suppress completed context or hold the process', async t => {
   const f = await fixture(t);
   const payload = { cwd: f.repo, hook_event_name: 'SessionStart' };
-  const missing = await run('claude', payload, { ...f.env, AGENT_HARNESS_KEY_FILE: join(f.root, 'absent.key') });
+  const missing = await run('claude', payload, { ...f.env, COMPASS_KEY_FILE: join(f.root, 'absent.key') });
   clean(missing); assert.match(missing.stdout, /NATIVE-SOURCE-PRIVATE-BODY/);
   const sockets = new Set();
   const server = net.createServer(socket => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)); socket.resume(); });
   const socketPath = join(f.root, 'stalled.sock');
   await new Promise(resolve => server.listen(socketPath, resolve));
   t.after(() => new Promise(resolve => { for (const socket of sockets) socket.destroy(); server.close(resolve); }));
-  const stalled = await run('codex', payload, { ...f.env, AGENT_HARNESS_SOCKET: socketPath });
+  const stalled = await run('codex', payload, { ...f.env, COMPASS_SOCKET: socketPath });
   clean(stalled); assert.match(stalled.stdout, /NATIVE-SOURCE-PRIVATE-BODY/);
   assert.ok(stalled.elapsed < 700, `audit ${stalled.elapsed}ms`);
 });
@@ -122,7 +122,7 @@ test('native delivery audits persist only metadata, count all platforms, and ded
   t.after(async () => { await supervisor.close(); ledger.close(); });
   for (const platform of ['claude', 'codex']) {
     for (const hook_event_name of ['SessionStart', 'UserPromptSubmit', 'SubagentStart']) {
-      const result = await run(platform, { cwd: f.repo, hook_event_name, prompt: 'PROMPT-PRIVATE-SENTINEL' }, { ...f.env, AGENT_HARNESS_SOCKET: socketPath });
+      const result = await run(platform, { cwd: f.repo, hook_event_name, prompt: 'PROMPT-PRIVATE-SENTINEL' }, { ...f.env, COMPASS_SOCKET: socketPath });
       clean(result); assert.match(result.stdout, /NATIVE-SOURCE-PRIVATE-BODY/);
     }
   }
@@ -136,7 +136,7 @@ test('native delivery audits persist only metadata, count all platforms, and ded
     const bytes = await fs.readFile(filename);
     for (const sentinel of ['NATIVE-SOURCE-PRIVATE-BODY', 'PROMPT-PRIVATE-SENTINEL', 'b7Qx_2mN9-vR4.kL8sP0', f.repo]) assert.equal(bytes.includes(Buffer.from(sentinel)), false);
   }
-  const ignored = await run('codex', { cwd: f.repo, hook_event_name: 'PostToolUse' }, { ...f.env, AGENT_HARNESS_SOCKET: socketPath });
+  const ignored = await run('codex', { cwd: f.repo, hook_event_name: 'PostToolUse' }, { ...f.env, COMPASS_SOCKET: socketPath });
   assert.equal(ignored.stdout, '');
   assert.equal(ledger.metrics().grounding.injections, 7);
 });
