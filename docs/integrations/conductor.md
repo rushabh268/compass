@@ -34,9 +34,11 @@ milliseconds), summary:{events,grounding}, events:[event-v1 bodies], nextCursor.
 Cursors bind the immutable snapshot, platform, run, subject, head, count, position,
 and expiry. Expiration/eviction returns stale; start a new snapshot explicitly.
 
-Pages contain at most 50 events and 64 KiB. Verification runs in one read-only
-worker, with bounded jobs, bytes, events, time, and caches. The WAL read transaction
-ends before the first UI page. No synchronous verification fallback is permitted.
+Pages contain at most 50 events, with a 60 KiB budget for serialized event entries
+(including separator allowance). Snapshot metadata, cursors, and RPC framing are
+additional; the transport caps each JSON frame body at 1 MiB. Verification runs in
+one read-only worker, with bounded jobs, bytes, events, time, and caches. The WAL
+read transaction ends before the first UI page. No synchronous verification fallback is permitted.
 Grounding events preserve monthly runs; only future events with an explicit target
 are attached. Historical monthly totals are never assigned to sessions. A pruned
 monthly receipt establishes only monthly pruning, not session-specific grounding.
