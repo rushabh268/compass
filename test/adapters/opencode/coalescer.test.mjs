@@ -1,3 +1,4 @@
+import { isolateCompassEnvironment } from "../../helpers/compass-environment.mjs";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { mkdtemp, writeFile } from "node:fs/promises";
@@ -10,6 +11,8 @@ import { createEventCoalescer, loadCoalescingConfig } from "../../../adapters/op
 const TEN_MINUTES = 10 * 60 * 1_000;
 const start = Date.parse("2026-08-24T12:00:00.000Z");
 const sentinel = "RAW-SENTINEL-must-never-reach-the-summary";
+const restoreAliases = isolateCompassEnvironment();
+test.after(restoreAliases);
 const originalStateDir = process.env.COMPASS_STATE_DIR;
 const originalCoalescingConfig = process.env.COMPASS_COALESCING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-opencode-state-"));
@@ -736,4 +739,49 @@ test("RED: equal-sized summaries in one bucket get distinct IDs while a retry ke
   assert.equal(attempts[0].dedupeKey, attempts[1].dedupeKey, "retry must preserve the rejected dedupe ID");
   assert.notEqual(attempts[1].eventID, attempts[2].eventID, "distinct summaries must not collide");
   assert.notEqual(attempts[1].dedupeKey, attempts[2].dedupeKey, "distinct summaries must not share a dedupe ID");
+});
+
+test("global pressure across UTC rollover preserves pending identity and current-month counts", async () => {
+  let current = new Date("2026-09-30T23:59:59Z");
+  let accept = false;
+  const attempts = [];
+  const coalescer = createEventCoalescer({ queueMax: 1, windowMs: 40 * 86400000,
+    now: () => current, enqueue: e => { attempts.push(e); return accept; },
+    setTimeout: () => ({ unref() {} }), clearTimeout() {},
+  });
+  coalescer.push(event("LspUpdate"));
+  await coalescer.flush();
+  const september = attempts[0];
+  current = new Date("2026-10-01T00:00:00Z");
+  coalescer.push(event("LspUpdate"));
+  accept = true;
+  await coalescer.flush();
+  assert.equal(attempts[1].eventID, september.eventID);
+  const october = attempts.at(-1);
+  assert.notEqual(october.runID, september.runID);
+  assert.equal(october.summary.noise, 1);
+  assert.equal(september.summary.noise, 1);
+  await coalescer.dispose();
+});
+
+test("queue-full replacement cannot fold a prior-month pending snapshot into the current month", async () => {
+  let current = new Date("2026-09-30T23:59:59Z");
+  let accept = false;
+  const attempts = [];
+  const coalescer = createEventCoalescer({ queueMax: 1, windowMs: 40 * 86400000,
+    now: () => current, enqueue: e => { attempts.push(e); return accept; },
+    setTimeout: () => ({ unref() {} }), clearTimeout() {},
+  });
+  coalescer.push(event("LspUpdate")); await coalescer.flush();
+  const september = attempts[0];
+  current = new Date("2026-10-01T00:00:00Z");
+  coalescer.recordQueueFull({ replacePending: true });
+  accept = true;
+  await coalescer.flush();
+  assert.equal(attempts.at(-2).eventID, september.eventID);
+  const october = attempts.at(-1);
+  assert.notEqual(october.runID, september.runID);
+  assert.equal(october.summary.noise, 0);
+  assert.equal(october.summary.queueFull, 1);
+  await coalescer.dispose();
 });

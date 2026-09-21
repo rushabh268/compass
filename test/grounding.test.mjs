@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { collectGrounding } from '../src/grounding.mjs';
 import { loadSyntheticFixtures } from './fixtures/dlp/load.mjs';
 test('disabled collection is silent without Git', async () => {
-  assert.equal(await collectGrounding({ worktree: '/missing', loadConfig: async () => ({ enabled: false }), git: { execFile() { throw Error('must not run'); } } }), null);
+  assert.equal(await collectGrounding({ notesDir: "", worktree: '/missing', loadConfig: async () => ({ enabled: false }), git: { execFile() { throw Error('must not run'); } } }), null);
 });
 
 import { execFile } from 'node:child_process';
@@ -28,7 +28,7 @@ async function fixture(t) {
   const notes = join(root, '.compass/notes/context');
   await fs.mkdir(notes, { recursive: true });
   await fs.writeFile(join(notes, 'status.md'), 'PROJ-123 shared project decision');
-  return { root, notes, collect: (overrides = {}) => collectGrounding({ worktree: root, loadConfig: async () => policy, ...overrides }) };
+  return { root, notes, collect: (overrides = {}) => collectGrounding({ notesDir: "", worktree: root, loadConfig: async () => policy, ...overrides }) };
 }
 test('shared collection refreshes source/config fingerprints and rejects unsafe reads', async t => {
   const { root, notes, collect } = await fixture(t);
@@ -76,6 +76,34 @@ test('UTF-8 wrapper budget and credential-shaped source refs are redacted', asyn
   assert.doesNotMatch(JSON.stringify(result.metadata), new RegExp(secret));
   assert.equal(result.text.includes('\uFFFD'), false);
 });
+test('tiny budgets emit no wrapper-only or partial-heading grounding', () => {
+  for (const tokenBudget of [1, 54, 55, 64]) {
+    const result = buildBrief({
+      vaultDocs: [{ path: '/notes/long-initiative-status.md', text: 'A source decision.' }],
+      config: { ...policy, tokenBudget },
+    });
+    assert.equal(result.text, '', `budget ${tokenBudget} must fit source text before emitting`);
+    assert.deepEqual(result.metadata.sources, []);
+  }
+});
+test('grounding starts only when a complete heading and source character fit in the byte cap', () => {
+  const input = {
+    vaultDocs: [{ path: '/notes/status.md', text: '  🙂decision' }],
+    config: policy,
+  };
+  const full = buildBrief(input).text;
+  const prefix = full.slice(0, full.indexOf('🙂'));
+  const close = '\n[END GROUNDING CONTEXT]';
+  const minimum = Buffer.byteLength(prefix + '🙂' + close);
+  for (const maxBytes of [1, 215, 216, minimum - 1]) {
+    assert.equal(buildBrief({ ...input, maxBytes }).text, '');
+  }
+  const exact = buildBrief({ ...input, maxBytes: minimum });
+  assert.equal(exact.text, prefix + '🙂' + close);
+  assert.equal(exact.metadata.bytes, minimum);
+  assert.equal(exact.metadata.sources.length, 1);
+  assert.equal(exact.text.includes('\uFFFD'), false);
+});
 test('aggregate traversal and bytes stay bounded across many initiative candidates', async t => {
   const { root, notes, collect } = await fixture(t);
   await fs.rm(notes, { recursive: true });
@@ -94,7 +122,7 @@ test('aggregate traversal and bytes stay bounded across many initiative candidat
 test('a hanging injected Git is aborted by the caller deadline', async () => {
   let signal;
   const started = performance.now();
-  assert.equal(await collectGrounding({ signal: AbortSignal.timeout(25), worktree: '/synthetic', loadConfig: async () => ({ ...policy, deadlineMs: 25 }), git: { execFile(_cmd, _args, options) { signal = options.signal; return new Promise(() => {}); } } }), null);
+  assert.equal(await collectGrounding({ notesDir: "", signal: AbortSignal.timeout(25), worktree: '/synthetic', loadConfig: async () => ({ ...policy, deadlineMs: 25 }), git: { execFile(_cmd, _args, options) { signal = options.signal; return new Promise(() => {}); } } }), null);
   assert.ok(signal.aborted);
   assert.ok(performance.now() - started < 300);
 });
@@ -112,7 +140,7 @@ test('late config completion after cancellation cannot start Git', async () => {
   let finishConfig;
   let calls = 0;
   const controller = new AbortController();
-  const result = collectGrounding({ worktree: '/synthetic', signal: controller.signal,
+  const result = collectGrounding({ notesDir: "", worktree: '/synthetic', signal: controller.signal,
     loadConfig: () => new Promise(resolve => { finishConfig = resolve; }),
     git: { execFile() { calls++; throw Error('must not run'); } },
   });

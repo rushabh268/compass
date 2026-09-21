@@ -320,12 +320,23 @@ export function buildBrief({ initiativeDir, vaultDocs = [], commentBlocks = [], 
   const sources = [];
   const commentFiles = new Set();
   let bytes = fenceBytes;
+  let exhausted = false;
 
   function add(kind, ref, heading, sourceText) {
     const body = escapeFenceMarkers(redactedText(redact, sourceText));
     const safeHeading = escapeFenceMarkers(redactedText(redact, heading));
     const safeRef = escapeFenceMarkers(redactedText(redact, ref));
     if (body.length === 0 || safeHeading.length === 0 || safeRef.length === 0) return false;
+    const firstContent = body.search(/\S/u);
+    if (firstContent === -1) return false;
+    const firstCharacter = String.fromCodePoint(body.codePointAt(firstContent));
+    const minimum = Buffer.byteLength(`${safeHeading}\n${body.slice(0, firstContent)}${firstCharacter}`, "utf8");
+    // A source reference is useful only if its full heading and some source
+    // content fit. Stop at the cap rather than scanning more bounded-out sources.
+    if (minimum > budget - bytes) {
+      exhausted = true;
+      return false;
+    }
     const appended = appendWithinBudget(parts, `${safeHeading}\n${body}\n`, budget - bytes);
     if (appended === 0) return false;
     bytes += appended;
@@ -334,14 +345,14 @@ export function buildBrief({ initiativeDir, vaultDocs = [], commentBlocks = [], 
   }
 
   for (const doc of vaultDocs) {
-    if (bytes >= budget) break;
+    if (exhausted || bytes >= budget) break;
     if (typeof doc?.text !== "string" || typeof doc.path !== "string") continue;
     const ref = relative(initiativeDir?.vaultDir ?? initiativeDir?.dir ?? doc.path, doc.path) || basename(doc.path);
     const title = typeof doc.title === "string" ? doc.title : basename(doc.path);
     add("project-notes", ref, `Project notes: ${title} (${ref})`, doc.text);
   }
   for (const block of commentBlocks) {
-    if (bytes >= budget) break;
+    if (exhausted || bytes >= budget) break;
     if (typeof block?.text !== "string" || typeof block.file !== "string" ||
         !Number.isInteger(block.startLine) || !Number.isInteger(block.endLine)) continue;
     const ref = `${block.file}:L${block.startLine}-L${block.endLine}`;

@@ -52,7 +52,8 @@ Custom installer runtime/state paths are not exposed as command-line flags.
    `health` and `verify` with the intended explicit socket/key paths before
    deleting any backup or old state.
 
-The installer rejects a legacy default launchd plist, wrapper, installation
+The installer rejects a legacy launchd plist named `agent-harness.plist` or
+ending in `.agent-harness.plist` (including custom labels), wrapper, installation
 manifest, selected-client legacy hook assignments, a legacy OpenCode shell
 block, or a plugin URL ending in `/agent-harness/adapters/opencode/server.js`.
 It does so before runtime installation, state creation, or configuration edits,
@@ -62,6 +63,15 @@ or unselected custom client home; inspect those registrations during migration.
 Backups are never restored over later user changes. New backups use
 `.compass.bak`; legacy `.agent-harness.bak` files remain recognized when deciding
 whether an empty pre-existing configuration should be kept.
+
+Keep a managed installation's original `installation.json` until it has been
+uninstalled. If the manifest is missing but its service files remain, the current
+uninstaller refuses to remove the service or purge state. The manifest is the
+ownership record for exact client commands, including custom Codex homes. Recover
+that record from a trusted backup or reconcile registrations manually before
+removing their service. A generated empty manifest cannot establish that no hooks
+remain. This also applies to reader-only service provisioning when the earlier
+installation's ownership record is unavailable.
 
 ## Stable data identities
 

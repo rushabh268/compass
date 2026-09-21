@@ -24,6 +24,7 @@ async function snapshot(home) {
 }
 const artifacts = [
   ["Library/LaunchAgents/local.agent-harness.plist", "old plist"],
+  ["Library/LaunchAgents/example.agent-harness.plist", "custom-label old plist"],
   [".local/bin/agent-harness-supervisor", "old wrapper"],
   [".local/state/agent-harness/installation.json", "{}"],
   [".zshenv", "# BEGIN agent-harness\nexport AGENT_HARNESS_SOCKET='/custom/supervisor.sock'\n# END agent-harness\n"],
@@ -52,6 +53,7 @@ test("retained legacy ledger/runtime and incidental prose do not block Compass",
   const value = await fixture(t);
   await put(value.home, ".local/state/agent-harness/events.sqlite", "retained");
   await put(value.home, ".local/share/agent-harness-runtime/package.json", "{}");
+  await put(value.home, "Library/LaunchAgents/example.other-agent.plist", "unrelated service");
   await put(value.home, ".claude/settings.json", JSON.stringify({ description: "an agent harness", hooks: {} }));
   const result = await bootstrap({ ...value, dryRun: true });
   assert.equal(result.plan.targets.stateDir, join(value.home, ".local/state/compass"));

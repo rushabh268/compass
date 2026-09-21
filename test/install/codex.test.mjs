@@ -208,15 +208,20 @@ test("reinstall unions selected adapters for whole-harness cleanup", async (t) =
   await absent(setup.targets.installationManifest);
 });
 
-test("uninstall does not claim client registrations when the manifest is missing", async (t) => {
-  const setup = await fixture(t);
-  await bootstrap({ ...setup, adapters: ["claude"] });
-  const original = await readFile(setup.targets.claudeSettings, "utf8");
-  await rm(setup.targets.installationManifest);
-  const result = await uninstall({ ...setup, dryRun: true });
-  assert.deepEqual(result.plan.adapters, []);
-  await uninstall(setup);
-  assert.equal(await readFile(setup.targets.claudeSettings, "utf8"), original);
+test("uninstall refuses a missing manifest before removing a managed service or changing clients", async (t) => {
+  for (const dryRun of [true, false]) {
+    const setup = await fixture(t);
+    await bootstrap({ ...setup, adapters: ["claude", "opencode", "codex"] });
+    const paths = [setup.targets.claudeSettings, setup.targets.opencodeConfig,
+      setup.targets.zshenv, setup.targets.codexHooks, setup.targets.wrapperPath,
+      setup.targets.plistPath, setup.targets.keyFile];
+    const originals = await Promise.all(paths.map((path) => readFile(path)));
+    await rm(setup.targets.installationManifest);
+    const calls = [...setup.calls];
+    await assert.rejects(uninstall({ ...setup, dryRun, purgeState: true, skipLaunchd: false }), /installation manifest is missing/i);
+    assert.deepEqual(await Promise.all(paths.map((path) => readFile(path))), originals);
+    assert.deepEqual(setup.calls, calls);
+  }
 });
 
 test("invalid adapter selections fail before files or commands are touched", async (t) => {

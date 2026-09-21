@@ -16,6 +16,7 @@
     "node": ">=24.19 <25"
   },
   "scripts": {
+    "pretest": "node scripts/check-runtime.mjs",
     "test": "node --test",
     "test:node24": "npx --yes node@24 --test",
     "check": "node scripts/check-syntax.mjs",

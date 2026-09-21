@@ -57,7 +57,8 @@ separate. No transcript files are opened to construct a brief.
 
 The complete native process has a one-second deadline. The complete brief,
 including wrappers, is capped at 8,192 UTF-8 bytes, with smaller configured
-budgets respected. The Codex grounding registration sets
+budgets respected. A brief must fit its safety wrappers, a complete source heading,
+and some source content; a smaller ceiling produces no output. The Codex grounding registration sets
 `additionalContextLimit: 0` because the producer enforces this complete-output
 ceiling; no other native limits are changed. Source traversal and reads are bounded; symlinks,
 nonregular source files, and paths escaping the selected roots are rejected.
@@ -68,6 +69,8 @@ Claude Code persists additional-context reminders. Codex supplies developer
 context with history managed by its host. OpenCode's cached system transform
 is ephemeral and creates no persisted conversation Part. The companion does
 not edit host histories to make these retention behaviors identical.
+These are per-emission limits. Repeated native callbacks may supply the same
+context again, and Compass does not impose a cumulative host-history budget.
 
 ## Audit boundary
 
@@ -79,6 +82,11 @@ the exact same event is deduplicated; separate emissions stay separate.
 An emission record is evidence that context was supplied, not that the model
 used it or that the resulting change is correct. Audit delivery remains best
 effort. The dashboard's counts cover a bounded recent window, not lifetime totals.
+OpenCode keeps at most 256 recent injection records between periodic drains and
+attempts one final drain on disposal. Overflow drops the oldest records without
+counting the loss, so recorded totals are a lower bound on emissions. Shutdown
+or queue/RPC failures can also lose telemetry; available context is not withheld
+because its audit record cannot be delivered.
 
 ## Host references
 
@@ -86,7 +94,7 @@ effort. The dashboard's counts cover a bounded recent window, not lifetime total
 - [Codex hooks](https://learn.chatgpt.com/docs/hooks)
 - [OpenCode plugins](https://opencode.ai/docs/plugins/)
 
-## Optional future session targeting
+## Session targeting
 
 Grounding keeps monthly run IDs for retention. When a native callback provides
 an explicit valid session/agent identity, `sessionHMAC` identifies that target and

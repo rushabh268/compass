@@ -1,3 +1,4 @@
+import { cleanCompassEnvironment } from "./helpers/compass-environment.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFile, spawn } from 'node:child_process';
@@ -33,7 +34,7 @@ async function fixture(t) {
 function run(platform, payload, env, { holdInput = false } = {}) {
   return new Promise((resolve, reject) => {
     const started = performance.now();
-    const child = spawn(process.execPath, [hook, '--platform', platform], { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, [hook, '--platform', platform], { env: { ...cleanCompassEnvironment(), ...env }, stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
     child.stdout.on('data', chunk => { stdout += chunk; });
     child.stderr.on('data', chunk => { stderr += chunk; });
@@ -50,7 +51,7 @@ function clean(result) {
 }
 test('both native platforms emit only documented envelopes for all context events and refresh edits', async t => {
   const f = await fixture(t);
-  const shared = await collectGrounding({ worktree: f.repo, loadConfig: async () => policy });
+  const shared = await collectGrounding({ notesDir: "", worktree: f.repo, loadConfig: async () => policy });
   for (const platform of ['claude', 'codex']) {
     for (const event of ['SessionStart', 'UserPromptSubmit', 'SubagentStart']) {
       const result = await run(platform, { cwd: f.repo, hook_event_name: event, prompt: 'PROMPT-PRIVATE-SENTINEL', transcript_path: '/never-read-transcript' }, f.env);
@@ -126,7 +127,7 @@ test('native delivery audits persist only metadata, count all platforms, and ded
       clean(result); assert.match(result.stdout, /NATIVE-SOURCE-PRIVATE-BODY/);
     }
   }
-  const shared = await collectGrounding({ worktree: f.repo, loadConfig: async () => policy });
+  const shared = await collectGrounding({ notesDir: "", worktree: f.repo, loadConfig: async () => policy });
   const event = buildGroundingEvent(shared.metadata, { platform: 'opencode', hmacKey: key, occurrenceID: 'stable-retry' });
   ledger.ensureRun(event.runID);
   ledger.append(event); ledger.append(event);
@@ -158,7 +159,7 @@ test('native linked and nested worktrees resolve notes from the main checkout', 
 test('missing child identity never assigns grounding to parent session',async t=>{
  const f=await fixture(t),ledger=openLedger({path:join(f.root,'ledger/events.sqlite'),hmacKey:key}),socketPath=join(f.root,'private/rpc');
  const supervisor=await startSupervisor({socketPath,authKey:key,ledger});t.after(async()=>{await supervisor.close();ledger.close();});
- const shared=await collectGrounding({worktree:f.repo,loadConfig:async()=>policy});
+ const shared=await collectGrounding({ notesDir: "",worktree:f.repo,loadConfig:async()=>policy});
  for(const platform of ['claude','codex']){
   const result=await run(platform,{cwd:f.repo,session_id:'synthetic-parent',hook_event_name:'SubagentStart'},{...f.env,COMPASS_SOCKET:socketPath});
   clean(result);assert.match(result.stdout,/NATIVE-SOURCE-PRIVATE-BODY/);

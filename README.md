@@ -170,8 +170,9 @@ Repository comments currently come from working-tree files selected by
 `git diff HEAD~1 HEAD`; this is not a repository-wide search or a search across
 all uncommitted files. Each source file is capped at 64 KiB, with file and
 directory count limits. `tokenBudget` uses a four-bytes-per-token approximation,
-not a model tokenizer. `deadlineMs` bounds individual Git commands, not the total
-filesystem refresh.
+not a model tokenizer. The ceiling includes safety wrappers and source headings;
+if a complete heading and source content cannot fit, no brief is emitted.
+`deadlineMs` bounds individual Git commands, not the total filesystem refresh.
 
 All three adapters use the same source selection, redaction, marker escaping,
 and source references. Claude Code and Codex register separate synchronous
@@ -191,10 +192,17 @@ leave the native workflow running without additional context.
 Context retention belongs to the host. Claude Code persists additional-context
 reminders; Codex supplies developer context under its own history management.
 OpenCode's system transform is ephemeral and creates no persisted conversation
-Part. Grounding can send selected, redacted text to the configured model provider.
+Part. Budgets apply to each emission, not the cumulative session history. Repeated
+native callbacks can repeat context the host retains; Compass does not cap that
+history. Grounding can send selected, redacted text to the configured model provider.
 The ledger receives only source references, match reason, sizes, and timing
 metadata; it never receives the raw brief. Context output does not depend on a
 healthy audit connection, and an emission record does not prove model use.
+
+OpenCode buffers up to 256 recent grounding occurrences between periodic drains
+and makes a final best-effort drain during shutdown. Overflow drops the oldest
+entries without an overflow counter. Recorded grounding totals can therefore
+understate emissions, even when context delivery succeeds.
 
 See the [grounding workflow](docs/grounding-workflow.md) for the two information
 flows and host-specific integration boundary.
@@ -238,8 +246,12 @@ backup. **Do not overwrite the key** to fix a connection problem.
 OpenCode coalesces selected noisy events while preserving supported lifecycle,
 tool, permission, error, and DLP observations. Queues are bounded and can drop
 events under pressure. Retention is explicit and run-based; no automatic pruning
-schedule is installed. Events in long-lived global runs can remain longer than
-their individual ages would suggest. `retention-status` and `prune --dry-run` are
+schedule is installed. New global OpenCode observations and summaries use UTC-month
+run partitions, including across a running plugin's month transition. Pending
+retries retain their original month and identity; a full queue may drop new
+observations rather than mix months. Existing legacy runs are not rewritten, and
+long-lived session runs can retain events longer than their individual ages suggest.
+`retention-status` and `prune --dry-run` are
 available through the CLI; inspect their output before choosing a prune action.
 
 If the supervisor appears unavailable, check:
@@ -267,8 +279,12 @@ state directory, including its key and ledger; use it only when that deletion is
 intended. `--dry-run` shows the plan.
 
 Keep `installation.json` in the private state directory until uninstall. If it
-is deleted, client hooks require manual cleanup: uninstall does not claim
-ownership of unrecorded registrations or inspect unselected client settings.
+is missing while the managed wrapper or plist exists, uninstall refuses before
+editing clients, stopping the service, or purging state. Restore the original
+manifest from a trusted backup, or reconcile the exact registrations manually;
+do not replace unknown ownership with an empty manifest. An already removed
+installation remains safe to uninstall again. Uninstall does not inspect
+unselected client settings or infer ownership of unrecorded hooks.
 
 ## Development and license
 

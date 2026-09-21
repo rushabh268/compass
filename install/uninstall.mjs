@@ -71,6 +71,13 @@ export async function run({
   const targets = resolveTargets({ home, repoRoot, codexHome, stateDir });
   await preflightDirectory(targets.stateDir, { mode: 0o700 });
   const manifestText = await fileText(targets.installationManifest, { mode: 0o600, maxBytes: 1024 * 1024 });
+  if (manifestText === null) {
+    for (const path of [targets.plistPath, targets.wrapperPath]) {
+      if ((await inspectPath(path)).entry) {
+        throw new Error("installation manifest is missing; restore its recorded client registrations before uninstalling the managed service");
+      }
+    }
+  }
   const manifest = parseManifest(manifestText);
   const codexCommands = new Map();
   for (const registration of manifest.codex) {

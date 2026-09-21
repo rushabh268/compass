@@ -1,3 +1,4 @@
+import { isolateCompassEnvironment } from "./helpers/compass-environment.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -36,6 +37,9 @@ function disabledConfig() {
     dlpOverride: true,
   };
 }
+
+const restoreAliases = isolateCompassEnvironment();
+test.after(restoreAliases);
 
 async function withEnv(values, operation) {
   const previous = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));

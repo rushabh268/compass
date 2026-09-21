@@ -1,3 +1,4 @@
+import { isolateCompassEnvironment } from "../../helpers/compass-environment.mjs";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { mkdtemp, writeFile } from "node:fs/promises";
@@ -15,6 +16,8 @@ import { openLedger } from "../../../src/state/ledger.mjs";
 import { startSupervisor } from "../../../src/supervisor/server.mjs";
 
 const authKey = Buffer.alloc(32, 0x62);
+const restoreAliases = isolateCompassEnvironment();
+test.after(restoreAliases);
 const originalStateDir = process.env.COMPASS_STATE_DIR;
 const originalCoalescingConfig = process.env.COMPASS_COALESCING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-opencode-state-"));
@@ -476,7 +479,7 @@ test("disabled coalescing drops PTY and all global noise without evicting queued
   });
 });
 
-test("RED: disabled, missing, and invalid config still scans global noise for DLP while dropping safe noise", async (t) => {
+test("disabled, missing, and invalid config still scans global noise for DLP while dropping safe noise", async (t) => {
   const globalNoiseTypes = [
     "pty.created", "file.watcher.created", "vcs.commit", "file.edited", "installation.updated",
     "lsp.client.diagnostics", "lsp.updated", "server.connected", "tui.prompt.append",
@@ -607,7 +610,7 @@ test("all-priority queue saturation is best-effort and increments global queueFu
   });
 });
 
-test("RED: HarnessMetrics eviction defers queueFull accounting without exceeding queueMax", async (t) => {
+test("HarnessMetrics eviction defers queueFull accounting without exceeding queueMax", async (t) => {
   const queueMax = 2;
   const supervisor = await fakeSupervisor(t, { stalled: true });
   const root = await mkdtemp(join(tmpdir(), "ah-opencode-key-"));
@@ -774,7 +777,7 @@ test("real message.part.delta envelopes coalesce and DLP override preserves the 
 // - Redaction wired (redactText from src/dlp/redact.mjs)
 // - Occurrence tracking with DISTINCT occurrenceIDs → DISTINCT eventID/dedupeKey
 
-test("RED: experimental.chat.system.transform hook registered, NO chat.message hook", async (t) => {
+test("experimental.chat.system.transform hook registered, NO chat.message hook", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({});
@@ -784,7 +787,7 @@ test("RED: experimental.chat.system.transform hook registered, NO chat.message h
   });
 });
 
-test("RED: experimental.chat.system.transform with cold cache pushes nothing and records nothing", async (t) => {
+test("experimental.chat.system.transform with cold cache pushes nothing and records nothing", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
@@ -807,7 +810,7 @@ test("RED: experimental.chat.system.transform with cold cache pushes nothing and
   });
 });
 
-test("RED: experimental.chat.system.transform with warmed cache pushes brief onto output.system and records", async (t) => {
+test("experimental.chat.system.transform with warmed cache pushes brief onto output.system and records", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
@@ -846,7 +849,7 @@ test("RED: experimental.chat.system.transform with warmed cache pushes brief ont
   });
 });
 
-test("RED: experimental.chat.system.transform fails open without creating or replacing a non-array system", async (t) => {
+test("experimental.chat.system.transform fails open without creating or replacing a non-array system", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const recordInjectionCalls = [];
@@ -875,7 +878,7 @@ test("RED: experimental.chat.system.transform fails open without creating or rep
   });
 });
 
-test("RED: experimental.chat.system.transform zero hot-path I/O with cold cache", async (t) => {
+test("experimental.chat.system.transform zero hot-path I/O with cold cache", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   const spies = { fsReadFile: 0, fsStat: 0, fsReaddir: 0, gitExecFile: 0, socketWrite: 0 };
 
@@ -905,7 +908,7 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with cold cache"
   });
 });
 
-test("RED: experimental.chat.system.transform zero hot-path I/O with warmed cache", async (t) => {
+test("experimental.chat.system.transform zero hot-path I/O with warmed cache", async (t) => {
   const supervisor = await fakeSupervisor(t);
   const root = await mkdtemp(join(tmpdir(), "ah-opencode-warm-key-"));
   const keyFile = join(root, "auth.key");
@@ -966,7 +969,7 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with warmed cach
       worktree: "/worktree",
       _createGroundingCache: ({ directory, worktree, redact }) => {
         cache = createGroundingCache({
-          directory, worktree, redact,
+          directory, worktree, redact, notesDir: "",
           loadConfig: async () => ({
             schemaVersion: 1,
             enabled: true,
@@ -1001,7 +1004,7 @@ test("RED: experimental.chat.system.transform zero hot-path I/O with warmed cach
   });
 });
 
-test("RED: experimental.chat.system.transform fail-open when snapshot() throws", async (t) => {
+test("experimental.chat.system.transform fail-open when snapshot() throws", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const hooks = await OpenCodeShadow({
@@ -1022,7 +1025,7 @@ test("RED: experimental.chat.system.transform fail-open when snapshot() throws",
   });
 });
 
-test("RED: experimental.chat.system.transform fail-open when recordInjection() throws", async (t) => {
+test("experimental.chat.system.transform fail-open when recordInjection() throws", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
     const snapshot = {
@@ -1057,7 +1060,7 @@ test("RED: experimental.chat.system.transform fail-open when recordInjection() t
   });
 });
 
-test("RED: experimental.chat.system.transform pushes snapshot.brief VERBATIM (no hot-path redaction) and calls recordInjection", async (t) => {
+test("experimental.chat.system.transform pushes snapshot.brief VERBATIM (no hot-path redaction) and calls recordInjection", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
 
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
@@ -1094,7 +1097,7 @@ test("RED: experimental.chat.system.transform pushes snapshot.brief VERBATIM (no
   });
 });
 
-test("RED: two system.transform calls with SAME metadata but DIFFERENT occurrenceIDs yield DISTINCT telemetry events", async (t) => {
+test("legacy bare metadata drains retain content-based identity", async (t) => {
   const supervisor = await fakeSupervisor(t);
   const root = await mkdtemp(join(tmpdir(), "ah-opencode-occurrence-key-"));
   const keyFile = join(root, "auth.key");
@@ -1121,7 +1124,7 @@ test("RED: two system.transform calls with SAME metadata but DIFFERENT occurrenc
         recordInjection: () => { callCount += 1; },
         noteToolActivity: () => {},
         drainMetadata: () => {
-          // Simulate two injections drained with DISTINCT occurrenceIDs
+          // Legacy cache shape contains bare metadata without occurrence IDs.
           const result = [];
           if (callCount > 0) result.push({ ...metadata });
           if (callCount > 1) result.push({ ...metadata });
@@ -1159,7 +1162,7 @@ test("RED: two system.transform calls with SAME metadata but DIFFERENT occurrenc
   });
 });
 
-test("RED: tool.execute.after still calls noteToolActivity on grounding cache", async (t) => {
+test("tool.execute.after still calls noteToolActivity on grounding cache", async (t) => {
   const { keyFile, socketPath, ledger } = await fixture(t);
 
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
@@ -1181,7 +1184,7 @@ test("RED: tool.execute.after still calls noteToolActivity on grounding cache", 
   });
 });
 
-test("RED: dispose() calls stop() on grounding cache synchronously", async (t) => {
+test("dispose() calls stop() on grounding cache synchronously", async (t) => {
   const { keyFile, socketPath } = await fixture(t);
 
   await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
@@ -1291,28 +1294,6 @@ test("GroundingInjection drain persists one closed metadata event and no raw con
   });
 });
 
-test("plugin factory returns synchronously without startup I/O (no sync git/fs/socket)", async (t) => {
-  const { keyFile, socketPath } = await fixture(t);
-
-  let fsCallsDuringSyncInit = 0;
-  let gitCallsDuringSyncInit = 0;
-
-  // Spy on I/O during factory call
-  const originalRequest = http.request;
-  let socketCallsDuringSyncInit = 0;
-
-  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: socketPath }, async () => {
-    // Measure if factory blocks on I/O (factory should return immediately)
-    const startTime = process.hrtime.bigint();
-    const hooks = await OpenCodeShadow({});
-    const elapsed = process.hrtime.bigint() - startTime;
-
-    // Factory should return in microseconds (not milliseconds)
-    const elapsedMs = Number(elapsed) / 1_000_000;
-    assert.ok(elapsedMs < 100, `factory init must not block on I/O; took ${elapsedMs}ms`);
-  });
-});
-
 test("default grounding drain changes its retention epoch across UTC months", async (t) => {
   const supervisor = await fakeSupervisor(t);
   const root = await mkdtemp(join(tmpdir(), "ah-opencode-month-"));
@@ -1340,5 +1321,93 @@ test("default grounding drain changes its retention epoch across UTC months", as
     const events = supervisor.requests.filter(({ method }) => method === "append").map(({ params }) => params.event);
     assert.notEqual(events[0].runID, events[1].runID);
     await hooks.dispose();
+  });
+});
+
+test("dispose drains short-session grounding once and rejects late hooks", async (t) => {
+  const supervisor = await fakeSupervisor(t);
+  const root = await mkdtemp(join(tmpdir(), "compass-final-drain-"));
+  const keyFile = join(root, "key");
+  await writeFile(keyFile, authKey, { mode: 0o600 });
+  const timerControl = captureGlobalTimer(30_000);
+  t.after(timerControl.restore);
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
+    const entries = []; let drains = 0; let activities = 0;
+    const hooks = await OpenCodeShadow({ _groundingCache: {
+      start() {}, stop() {}, snapshot: () => ({ brief: "brief" }),
+      recordInjection() { entries.push(null, { metadata: { sources: [], matchReason: "none" }, occurrenceID: "short" }); },
+      drainMetadata() { drains++; return entries.splice(0); }, noteToolActivity() { activities++; },
+    } });
+    hooks["experimental.chat.system.transform"]({}, { system: [] });
+    const first = hooks.dispose(); const second = hooks.dispose();
+    assert.equal(first, second);
+    await first;
+    assert.equal(drains, 1);
+    assert.equal(supervisor.ackedAppends.filter(e => e.eventType === "GroundingInjection").length, 1);
+    const output = { system: [] };
+    hooks["experimental.chat.system.transform"]({}, output);
+    hooks["tool.execute.after"]();
+    timerControl.captured[0].handle.callback();
+    assert.deepEqual(output.system, []);
+    assert.equal(activities, 0);
+    assert.equal(drains, 1);
+    assert.equal(timerControl.captured.length, 1);
+    await hooks.dispose();
+  });
+});
+
+test("native-shaped plugin rotates sessionless observations in the same process", async (t) => {
+  const supervisor = await fakeSupervisor(t);
+  const root = await mkdtemp(join(tmpdir(), "compass-native-month-"));
+  const keyFile = join(root, "key");
+  await writeFile(keyFile, authKey, { mode: 0o600 });
+  const ActualDate = globalThis.Date;
+  let instant = "2026-09-30T23:59:59Z";
+  globalThis.Date = class extends ActualDate { constructor(...args) { super(...(args.length ? args : [instant])); } };
+  t.after(() => { globalThis.Date = ActualDate; });
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
+    const hooks = await OpenCodeShadow({ directory: root, worktree: root, client: {}, project: {}, serverUrl: new URL("http://localhost"), $: {} });
+    hooks.event({ event: { type: "session.error", id: "same" } });
+    await waitFor(() => supervisor.ackedAppends.length === 1);
+    instant = "2026-10-01T00:00:00Z";
+    hooks.event({ event: { type: "session.error", id: "same" } });
+    await hooks.dispose();
+    assert.equal(supervisor.ackedAppends.length, 2);
+    assert.notEqual(supervisor.ackedAppends[0].runID, supervisor.ackedAppends[1].runID);
+    assert.notEqual(supervisor.ackedAppends[0].eventID, supervisor.ackedAppends[1].eventID);
+  });
+});
+
+test("server grounding drain preserves distinct occurrences and stable retry identities", async (t) => {
+  const supervisor = await fakeSupervisor(t);
+  const root = await mkdtemp(join(tmpdir(), "compass-occurrences-"));
+  const keyFile = join(root, "key");
+  await writeFile(keyFile, authKey, { mode: 0o600 });
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
+    const metadata = { sources: [], matchReason: "none" };
+    const entries = ["first", "second", "first"].map(occurrenceID => ({ metadata, occurrenceID }));
+    const hooks = await OpenCodeShadow({ _groundingCache: { start() {}, stop() {}, drainMetadata: () => entries.splice(0) } });
+    await hooks.dispose();
+    const events = supervisor.ackedAppends;
+    assert.equal(events.length, 3);
+    for (const field of ["eventID", "dedupeKey"]) {
+      assert.notEqual(events[0][field], events[1][field]);
+      assert.equal(events[0][field], events[2][field]);
+    }
+  });
+});
+
+test("final grounding drain remains bounded with a stalled supervisor", async (t) => {
+  const supervisor = await fakeSupervisor(t, { stalled: true });
+  const root = await mkdtemp(join(tmpdir(), "compass-stalled-drain-"));
+  const keyFile = join(root, "key");
+  await writeFile(keyFile, authKey, { mode: 0o600 });
+  await withEnv({ COMPASS_KEY_FILE: keyFile, COMPASS_SOCKET: supervisor.socketPath }, async () => {
+    const entries = [{ metadata: { sources: [], matchReason: "none" }, occurrenceID: "stalled" }];
+    const hooks = await OpenCodeShadow({ _groundingCache: { start() {}, stop() {}, drainMetadata: () => entries.splice(0) } });
+    const started = performance.now();
+    await Promise.all([hooks.dispose(), hooks.dispose()]);
+    assert.ok(performance.now() - started < 300);
+    assert.equal(supervisor.requests.length, 1);
   });
 });

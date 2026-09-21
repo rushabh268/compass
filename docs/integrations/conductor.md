@@ -146,3 +146,18 @@ agent-parent evidence. `stale` is reserved for unrecognized, expired, evicted, o
 invalid continuation cursors. The server returns a completed result rather than a
 polling token; pending is a local client state while its cancellable RPC is active.
 Do not reuse a cursor with another selection. Begin a new snapshot to refresh.
+
+Worker execution admits at most eight jobs (including the active job) and dispatches
+one at a time. The five-second watchdog starts at dispatch, including worker startup;
+queue wait does not consume that execution budget. With eight admitted jobs, a job
+can wait behind at most seven bounded executions. Additional submissions return
+`resource_exhausted`. These are service watchdog bounds, not latency guarantees
+under event-loop scheduling or machine suspension.
+
+A timeout, crash, or exit settles that generation's active and queued requests as
+`unavailable`; requests are not automatically replayed. A later request lazily starts
+a fresh worker. Its snapshot cache and cursor key are new, so old continuation
+cursors return `stale`; explicitly begin a new snapshot. Deliberate service shutdown
+prevents replacements and waits for outstanding worker terminations. Worker loss
+does not establish that the underlying ledger is invalid. The v1 response remains
+closed and does not add a `reason` field.

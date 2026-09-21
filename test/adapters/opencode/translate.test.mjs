@@ -1,3 +1,4 @@
+import { isolateCompassEnvironment } from "../../helpers/compass-environment.mjs";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,6 +10,8 @@ import { translateOpenCodeEvent, buildGroundingEvent } from "../../../adapters/o
 
 const authKey = Buffer.alloc(32, 0x61);
 const now = new Date("2026-08-24T12:34:56.000Z");
+const restoreAliases = isolateCompassEnvironment();
+test.after(restoreAliases);
 const originalStateDir = process.env.COMPASS_STATE_DIR;
 const originalCoalescingConfig = process.env.COMPASS_COALESCING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-opencode-state-"));
@@ -421,4 +424,14 @@ test("RED: buildGroundingEvent retentionEpoch parameter accepts string (or undef
 
   // Both should produce different eventIDs
   assert.notEqual(eventUndefined.eventID, eventWithString.eventID);
+});
+
+test("default global identities rotate by observation month while session identities remain stable", () => {
+  for (const type of ["lsp.updated", "session.error", "session.created"]) {
+    const input = { type, id: "same-native-occurrence", ...(type === "session.created" ? { info: { id: "session" } } : {}) };
+    const first = translateOpenCodeEvent(input, { authKey, now: new Date("2026-09-30T23:59:59Z") });
+    const second = translateOpenCodeEvent(input, { authKey, now: new Date("2026-10-01T00:00:00Z") });
+    if (type === "session.created") assert.equal(first.runID, second.runID);
+    else { assert.notEqual(first.runID, second.runID); assert.notEqual(first.eventID, second.eventID); }
+  }
 });

@@ -1,3 +1,4 @@
+import { cleanCompassEnvironment } from "../../helpers/compass-environment.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -29,7 +30,7 @@ function payload(overrides = {}) {
 }
 
 function launchHook(t, env) {
-  const childEnv = { ...process.env, COMPASS_SOCKET: undefined, COMPASS_KEY_FILE: undefined, ...env };
+  const childEnv = { ...cleanCompassEnvironment(), ...env };
   delete childEnv.NODE_OPTIONS;
   for (const key of Object.keys(childEnv)) if (childEnv[key] === undefined) delete childEnv[key];
   const started = performance.now();

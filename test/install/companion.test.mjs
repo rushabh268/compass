@@ -129,6 +129,10 @@ test("symlink service target is refused before provisioning", async t => {
 test("reader state is retained on normal uninstall and removed only with explicit state purge", { skip: process.platform !== "darwin" }, async t => {
   const setup = await fixture(t);
   const checkNative = await nativeSentinels(setup);
+  // This fixture has no registered adapters. Record that ownership explicitly;
+  // absence of a manifest cannot establish that real client hooks are absent.
+  await writeFile(setup.targets.installationManifest,
+    '{"schemaVersion":1,"adapters":[],"codex":[]}\n', { mode: 0o600 });
   const result = await enable(setup);
   const { run: uninstall } = await import("../../install/uninstall.mjs");
   const options = { home: setup.home, stateDir: setup.targets.stateDir, skipLaunchd: true };

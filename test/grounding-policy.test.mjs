@@ -1,3 +1,4 @@
+import { isolateCompassEnvironment } from "./helpers/compass-environment.mjs";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -9,6 +10,8 @@ import Ajv2020 from "ajv/dist/2020.js";
 import { loadGroundingConfig } from "../adapters/opencode/grounding.mjs";
 
 const fields = ["schemaVersion", "enabled", "tokenBudget", "deadlineMs", "sources"];
+const restoreAliases = isolateCompassEnvironment();
+test.after(restoreAliases);
 const originalStateDir = process.env.COMPASS_STATE_DIR;
 const originalGroundingConfig = process.env.COMPASS_GROUNDING_CONFIG;
 const hermeticStateDir = mkdtempSync(join(tmpdir(), "ah-grounding-policy-state-"));

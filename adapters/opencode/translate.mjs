@@ -1,5 +1,5 @@
 import { identityHMAC as hmac } from "../../src/identity.mjs";
-import { buildGroundingEvent as sharedGroundingEvent } from "../../src/grounding-event.mjs";
+import { buildGroundingEvent as sharedGroundingEvent, utcMonth } from "../../src/grounding-event.mjs";
 import { randomUUID } from "node:crypto";
 import { types } from "node:util";
 
@@ -133,11 +133,11 @@ export function translateOpenCodeEvent(input, {
   const parentID = string(own(info, "parentID") ?? own(info, "parentSessionID"), "parent session ID");
   const directoryValue = string(directory, "directory");
   const worktreeValue = string(worktree, "worktree");
-  const retentionEpochValue = string(retentionEpoch, "retentionEpoch");
+  const retentionEpochValue = string(retentionEpoch ?? utcMonth(now), "retentionEpoch");
   const occurrence = nativeEventID ?? string(occurrenceID, "occurrenceID") ?? randomUUID();
   // Sessionless events (global noise and session-less StopFailure) all share
-  // the fixed "global" identity domain. Fold an injected retention epoch
-  // (e.g. a UTC month) into that domain so global metrics and sessionless
+  // the fixed "global" identity domain. Fold the observation UTC month
+  // (or an explicit test epoch) into that domain so global metrics and sessionless
   // global DLP run IDs are time-partitioned: once an epoch's retention
   // window is archived, a later epoch never reuses its runID or event IDs.
   const globalScope = sessionID === "global";

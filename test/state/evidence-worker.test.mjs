@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm, readFile, stat, symlink, chmod } from "node:fs/promises";
+import { EventEmitter, once } from "node:events";
+import { Worker } from "node:worker_threads";
+import { pathToFileURL } from "node:url";
+import { mkdtemp, rm, readFile, stat, symlink, chmod, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -381,4 +384,131 @@ test("reader retention uses verified worker aggregates and enforces finite event
     (await f.service.begin(selector("claude"))).state,
     "resource_exhausted",
   );
+});
+
+for (const failure of ["timeout", "crash", "exit"]) {
+  test(`failed worker generation recovers after ${failure} without replay`, async (t) => {
+    const root = await mkdtemp(join(tmpdir(), "compass-recovery-"));
+    const workerPath = join(root, "worker.mjs");
+    const failing = failure === "timeout" ? "setInterval(() => {}, 1000)"
+      : failure === "crash" ? 'throw new Error("synthetic failure")' : "process.exit(0)";
+    await writeFile(workerPath, failing);
+    const service = createEvidenceService({ key, timeout: 300, workerURL: pathToFileURL(workerPath) });
+    t.after(async () => { await service.close(); await rm(root, { recursive: true, force: true }); });
+    const first = service.begin(selector("claude"));
+    const queued = service.retentionStatus();
+    assert.equal((await first).state, "unavailable");
+    assert.equal((await queued).state, "unavailable");
+    await writeFile(workerPath, `import { parentPort } from "node:worker_threads";
+      parentPort.on("message", ({id}) => parentPort.postMessage({id, result: {version:1, state:"absent"}}));`);
+    assert.deepEqual(await service.begin(selector("claude")), { version: 1, state: "absent" });
+  });
+}
+
+function controlledWorkers(options = {}) {
+  const workers = [];
+  const service = createEvidenceService({ key, timeout: 100, ...options,
+    workerFactory() {
+      const worker = new EventEmitter();
+      worker.sent = [];
+      worker.postMessage = (job) => worker.sent.push(job);
+      worker.terminate = () => { worker.terminated = true; return Promise.resolve(0); };
+      workers.push(worker);
+      return worker;
+    },
+  });
+  return { service, workers };
+}
+
+test("queued jobs receive their own dispatch watchdog and admission stays bounded", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { service, workers } = controlledWorkers({ maxJobs: 2 });
+  t.after(() => service.close());
+  const first = service.begin(selector("claude"));
+  const second = service.retentionStatus();
+  assert.equal((await service.retentionStatus()).state, "resource_exhausted");
+  const worker = workers[0];
+  assert.equal(worker.sent.length, 1);
+  t.mock.timers.tick(90);
+  worker.emit("message", { id: worker.sent[0].id, result: { version: 1, state: "absent" } });
+  assert.equal((await first).state, "absent");
+  assert.equal(worker.sent.length, 2);
+  t.mock.timers.tick(90);
+  assert.equal(worker.terminated, undefined);
+  worker.emit("message", { id: worker.sent[1].id, result: { version: 1, state: "absent" } });
+  assert.equal((await second).state, "absent");
+});
+
+test("obsolete events cannot settle replacement jobs and close awaits every termination", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { service, workers } = controlledWorkers();
+  t.after(() => service.close());
+  const first = service.begin(selector("claude"));
+  const old = workers[0];
+  let releaseOld;
+  old.terminate = () => new Promise(resolve => { releaseOld = resolve; });
+  t.mock.timers.tick(100);
+  assert.equal((await first).state, "unavailable");
+  const replacement = service.begin(selector("claude"));
+  const current = workers[1];
+  old.emit("exit", 1);
+  old.emit("error", new Error("late failure"));
+  old.emit("message", { id: current.sent[0].id, result: { version: 1, state: "absent" } });
+  let settled = false;
+  replacement.then(() => { settled = true; });
+  await Promise.resolve();
+  assert.equal(settled, false);
+  let closed = false;
+  const closing = service.close().then(() => { closed = true; });
+  const repeated = service.close();
+  assert.equal((await replacement).state, "unavailable");
+  assert.equal((await service.begin(selector("claude"))).state, "unavailable");
+  await Promise.resolve();
+  assert.equal(closed, false);
+  assert.equal(workers.length, 2);
+  releaseOld(0);
+  await Promise.all([closing, repeated]);
+  assert.equal(current.terminated, true);
+});
+
+test("constructor and dispatch errors settle jobs and allow later recovery", async (t) => {
+  let attempts = 0;
+  const workers = [];
+  const service = createEvidenceService({ key, workerFactory() {
+    attempts += 1;
+    if (attempts === 1) throw new Error("constructor failed");
+    const worker = new EventEmitter();
+    worker.terminate = () => Promise.resolve(0);
+    worker.postMessage = (job) => {
+      if (attempts === 2) throw new Error("dispatch failed");
+      queueMicrotask(() => worker.emit("message", { id: job.id, result: { version: 1, state: "absent" } }));
+    };
+    workers.push(worker);
+    return worker;
+  } });
+  t.after(() => service.close());
+  assert.equal((await service.begin(selector("claude"))).state, "unavailable");
+  assert.equal((await service.retentionStatus()).state, "unavailable");
+  assert.equal((await service.begin(selector("claude"))).state, "absent");
+  await service.close();
+  assert.equal((await service.retentionStatus()).state, "unavailable");
+  assert.equal(attempts, 3);
+});
+
+test("real worker replacement rejects old snapshot cursors as stale", async (t) => {
+  const workers = [];
+  const f = await fixture(t, { workerFactory(url, options) {
+    const worker = new Worker(url, options); workers.push(worker); return worker;
+  } });
+  for (let i = 0; i < 55; i++) f.add(translateClaudeHook(
+    { session_id: "synthetic-root", hook_event_name: "SessionStart" },
+    { authKey: key, occurrenceID: String(i) },
+  ));
+  const first = await f.service.begin(selector("claude"));
+  assert.equal(first.state, "ready");
+  assert.ok(first.nextCursor);
+  const exited = once(workers[0], "exit");
+  await workers[0].terminate(); await exited;
+  assert.equal((await f.service.continue({ version: 1, cursor: first.nextCursor })).state, "stale");
+  assert.equal((await f.service.begin(selector("claude"))).state, "ready");
 });

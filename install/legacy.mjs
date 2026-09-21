@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileText, inspectPath } from "./files.mjs";
 import { parseJsonc } from "./plan.mjs";
@@ -10,8 +11,13 @@ function rejectLegacy(path) {
 // Retained keys, ledger, and runtime alone are intentionally not a collision:
 // the original uninstaller preserves them for explicit operator-led migration.
 export async function assertNoLegacyInstallation({ home, targets, adapters }) {
+  const launchAgents = await inspectPath(join(home, "Library/LaunchAgents"), { directory: true });
+  if (launchAgents.entry) {
+    for (const name of (await readdir(launchAgents.path)).sort()) {
+      if (/(?:^|\.)agent-harness\.plist$/.test(name)) rejectLegacy(join(launchAgents.path, name));
+    }
+  }
   for (const path of [
-    join(home, "Library/LaunchAgents/local.agent-harness.plist"),
     join(home, ".local/bin/agent-harness-supervisor"),
     join(home, ".local/state/agent-harness/installation.json"),
   ]) {

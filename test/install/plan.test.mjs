@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -15,11 +16,13 @@ import {
   removeOpenCodePlugin,
   removeZshenv,
   renderCoalescingConfig,
+  renderGroundingConfig,
   renderLaunchdPlist,
   renderSupervisorWrapper,
   resolveTargets,
   zshenvBlock,
 } from "../../install/plan.mjs";
+import { loadGroundingConfig } from "../../src/grounding.mjs";
 
 const FOREIGN_USER = "/Users/example";
 const events = [
@@ -496,14 +499,21 @@ test("zshenvBlock exports COMPASS_GROUNDING_CONFIG pointing to groundingConfig p
   assertNoForeignUser(block);
 });
 
-test("renderCoalescingConfig conforms to schema", async () => {
-  const rendered = renderCoalescingConfig();
+test("generated grounding policy conforms to its schema and loads enabled", async (t) => {
+  const rendered = renderGroundingConfig();
   assert.equal(typeof rendered, "string");
   const config = JSON.parse(rendered);
-
-  const schema = JSON.parse(await readFile(new URL("../../config/coalescing.schema.json", import.meta.url), "utf8"));
+  const schema = JSON.parse(await readFile(new URL("../../config/grounding.schema.json", import.meta.url), "utf8"));
   const ajv = new Ajv2020({ allErrors: true });
   addFormats(ajv);
   const validate = ajv.compile(schema);
   assert.equal(validate(config), true, JSON.stringify(validate.errors));
+  const root = await mkdtemp(join(tmpdir(), "compass-generated-policy-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const path = join(root, "grounding.json");
+  await writeFile(path, rendered, { mode: 0o600 });
+  assert.deepEqual(await loadGroundingConfig(path), {
+    schemaVersion: 1, enabled: true, tokenBudget: 256, deadlineMs: 100,
+    sources: ["project-notes", "repo-comments"],
+  });
 });

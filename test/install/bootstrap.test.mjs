@@ -309,7 +309,8 @@ test("bootstrap creates grounding.json with mode 0600 create-if-absent", async (
   const fileMode = await mode(targets.groundingConfig);
   assert.equal(fileMode, 0o600, `grounding.json mode must be 0600, got ${(fileMode).toString(8)}`);
 
-  // Verify it's valid JSON (empty or minimal config)
+  // The installer emits a usable enabled policy; schema and loader coverage is
+  // exercised by the generated-policy test in plan.test.mjs.
   const content = await readFile(targets.groundingConfig, "utf8");
   assert.doesNotThrow(() => JSON.parse(content), "grounding.json must be valid JSON");
 });

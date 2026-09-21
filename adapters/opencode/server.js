@@ -62,6 +62,7 @@ export default async function OpenCodeShadow({
   const maxQueueSize = Math.max(1, Math.min(MAX_QUEUE_SIZE, coalescing.queueMax));
   let worker;
   let disposed = false;
+  let disposal;
   let stopping = false;
   let authKey;
   try {
@@ -167,7 +168,7 @@ export default async function OpenCodeShadow({
     }
   }
 
-  // Drains accumulated grounding metadata on its own unref'd cadence and
+  // Drains accumulated grounding metadata periodically and once at disposal;
   // enqueues one closed GroundingInjection event per drained { metadata,
   // occurrenceID } entry. This is the ONLY place grounding telemetry is
   // emitted -- the system.transform hot path never enqueues telemetry
@@ -177,18 +178,24 @@ export default async function OpenCodeShadow({
   // eventID/dedupeKey pairs instead of colliding in the ledger's dedupe
   // index. A bare metadata entry (no occurrenceID) falls back to the prior
   // content-only identity.
+  function drainGroundingMetadata() {
+    try {
+      for (const entry of groundingCache.drainMetadata?.() ?? []) {
+        try {
+          const { metadata, occurrenceID, target } = entry && typeof entry === "object" && "metadata" in entry ?
+            entry : { metadata: entry, occurrenceID: undefined };
+          enqueueEvent(buildGroundingEvent(metadata, { hmacKey: authKey, retentionEpoch: retentionEpoch ?? utcMonth(), occurrenceID, target }));
+        } catch { /* Fail open: malformed grounding metadata must not affect the host. */ }
+      }
+    } catch { /* Fail open: grounding telemetry must never affect host operations. */ }
+  }
+
   function scheduleGroundingDrain() {
+    if (disposed) return;
     groundingTimer = setTimeout(() => {
-      try {
-        for (const entry of groundingCache.drainMetadata?.() ?? []) {
-          try {
-            const { metadata, occurrenceID, target } = entry && typeof entry === "object" && "metadata" in entry ?
-              entry : { metadata: entry, occurrenceID: undefined };
-            enqueueEvent(buildGroundingEvent(metadata, { hmacKey: authKey, retentionEpoch: retentionEpoch ?? utcMonth(), occurrenceID, target }));
-          } catch { /* Fail open: malformed grounding metadata must not affect the host. */ }
-        }
-      } catch { /* Fail open: grounding telemetry must never affect host operations. */ }
-      if (!disposed) scheduleGroundingDrain();
+      if (disposed) return;
+      drainGroundingMetadata();
+      scheduleGroundingDrain();
     }, GROUNDING_DRAIN_INTERVAL_MS);
     groundingTimer.unref?.();
   }
@@ -258,6 +265,7 @@ export default async function OpenCodeShadow({
     event({ event } = {}) { enqueue(event); },
     "tool.execute.before"(input = {}, output = {}) { enqueue(input, "tool.execute.before", [input, output]); },
     "tool.execute.after"(input = {}, output = {}) {
+      if (disposed) return;
       enqueue(input, "tool.execute.after", [input, output]);
       try {
         groundingCache.noteToolActivity?.();
@@ -272,6 +280,7 @@ export default async function OpenCodeShadow({
     // hot path. Telemetry for the injection is drained later by
     // scheduleGroundingDrain on its own unref'd timer, never enqueued here.
     "experimental.chat.system.transform"(input = {}, output = {}) {
+      if (disposed) return;
       try {
         const snapshot = groundingCache.snapshot?.();
         if (snapshot && snapshot.brief && Array.isArray(output.system)) {
@@ -282,34 +291,39 @@ export default async function OpenCodeShadow({
         }
       } catch { /* Grounding injection must never affect host chat rendering. */ }
     },
-    async dispose() {
+    dispose() {
+      if (disposal) return disposal;
       disposed = true;
       clearTimeout(groundingTimer);
       try { groundingCache.stop?.(); } catch { /* Grounding cache stop is fail-open. */ }
-      try {
-        // Dispose first to cancel the aggregation timer and put all completed
-        // summaries through normal bounded admission before draining.
-        let pending = [];
-        try { pending = await coalescer.dispose(); } catch { /* Telemetry is fail-open. */ }
-        const timedOut = await drainWorker({ recordDrop: pending.length > 0 });
-        // Summaries rejected while the queue was full remain retryable in the
-        // coalescer, even when the drain above overran DISPOSE_TIMEOUT and
-        // dropped the raw queue. Re-open admission just long enough to retry
-        // them once now that capacity is freed, then drain the resulting
-        // work under the same bound before returning, so a worker timeout
-        // never silently discards pending session/global summaries.
-        if (timedOut) stopping = false;
-        await Promise.resolve();
-        try { await coalescer.flush(); } catch { /* Telemetry is fail-open. */ }
-        await drainWorker();
-      } finally {
-        stopping = true;
-        try { await coalescer.dispose(); } catch { /* Telemetry is fail-open. */ }
-        while (queue.length > 0) queue.shift().acknowledge?.(false);
-        for (const controller of activeRequests) controller.abort();
-        authKey?.fill(0);
-        authKey = undefined;
-      }
+      drainGroundingMetadata();
+      disposal = (async () => {
+        try {
+          // Dispose first to cancel the aggregation timer and put all completed
+          // summaries through normal bounded admission before draining.
+          let pending = [];
+          try { pending = await coalescer.dispose(); } catch { /* Telemetry is fail-open. */ }
+          const timedOut = await drainWorker({ recordDrop: pending.length > 0 });
+          // Summaries rejected while the queue was full remain retryable in the
+          // coalescer, even when the drain above overran DISPOSE_TIMEOUT and
+          // dropped the raw queue. Re-open admission just long enough to retry
+          // them once now that capacity is freed, then drain the resulting
+          // work under the same bound before returning, so a worker timeout
+          // never silently discards pending session/global summaries.
+          if (timedOut) stopping = false;
+          await Promise.resolve();
+          try { await coalescer.flush(); } catch { /* Telemetry is fail-open. */ }
+          await drainWorker();
+        } finally {
+          stopping = true;
+          try { await coalescer.dispose(); } catch { /* Telemetry is fail-open. */ }
+          while (queue.length > 0) queue.shift().acknowledge?.(false);
+          for (const controller of activeRequests) controller.abort();
+          authKey?.fill(0);
+          authKey = undefined;
+        }
+      })();
+      return disposal;
     },
   };
 }

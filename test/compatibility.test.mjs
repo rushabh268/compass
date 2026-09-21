@@ -41,7 +41,22 @@ test("legacy native event identities and authenticated RPC bytes are stable", ()
   assert.equal(authenticateRequest(legacy.rpc, Buffer.alloc(32, 0xa6)), false);
 });
 
-test("legacy coalescer fallback key and HarnessMetrics identity remain stable", async () => {
+test("explicit legacy no-epoch coalescer preserves fallback key and HarnessMetrics bytes", async () => {
+  const events = [];
+  const coalescer = createEventCoalescer({
+    // Empty epoch explicitly selects the historical unscoped identity contract.
+    retentionEpoch: "",
+    enqueue: (event) => { events.push(event); return true; },
+    now: () => new Date("2026-08-24T12:00:00.000Z"),
+    setTimeout: () => ({ unref() {} }), clearTimeout() {},
+  });
+  coalescer.push({ schemaVersion: 1, eventID: "synthetic-global", runID: "global", platform: "opencode", sessionHMAC: "1".repeat(64), eventType: "FileEdit", timestamp: "2026-08-24T12:00:00.000Z", dedupeKey: "synthetic-global" });
+  await coalescer.dispose();
+  assert.deepEqual(events, legacy.summary);
+});
+
+
+test("default monthly coalescer identity intentionally differs from the legacy no-epoch fixture", async () => {
   const events = [];
   const coalescer = createEventCoalescer({
     enqueue: (event) => { events.push(event); return true; },
@@ -50,5 +65,9 @@ test("legacy coalescer fallback key and HarnessMetrics identity remain stable", 
   });
   coalescer.push({ schemaVersion: 1, eventID: "synthetic-global", runID: "global", platform: "opencode", sessionHMAC: "1".repeat(64), eventType: "FileEdit", timestamp: "2026-08-24T12:00:00.000Z", dedupeKey: "synthetic-global" });
   await coalescer.dispose();
-  assert.deepEqual(events, legacy.summary);
+  assert.equal(events.length, 1);
+  assert.deepEqual(events[0].summary, legacy.summary[0].summary);
+  for (const field of ["runID", "sessionHMAC", "eventID", "dedupeKey"]) {
+    assert.notEqual(events[0][field], legacy.summary[0][field]);
+  }
 });

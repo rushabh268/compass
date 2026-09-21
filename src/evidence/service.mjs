@@ -8,6 +8,7 @@ export function createEvidenceService({
   timeout = 5000,
   snapshotTTL = 60000,
   workerURL = new URL("./worker.mjs", import.meta.url),
+  workerFactory = (url, options) => new Worker(url, options),
 } = {}) {
   if (
     !Number.isSafeInteger(maxJobs) ||
@@ -21,42 +22,75 @@ export function createEvidenceService({
     snapshotTTL > 60000
   )
     throw new TypeError("invalid evidence limits");
-  const worker = new Worker(workerURL, {
-    workerData: { path, key, snapshotTTL },
-    resourceLimits: { maxOldGenerationSizeMb: 128 },
-  });
-  const jobs = new Map();
-  let sequence = 0,
-    closed = false;
-  function fail() {
-    closed = true;
-    for (const job of jobs.values()) {
-      clearTimeout(job.timer);
-      job.resolve(unavailable);
-    }
-    jobs.clear();
+  const waiting = [];
+  const terminations = new Set();
+  let generation = null;
+  let sequence = 0;
+  let closed = false;
+  let closing;
+
+  function terminate(worker) {
+    if (!worker) return;
+    // Keep failures local, but retain every termination until close can await it.
+    const pending = Promise.resolve().then(() => worker.terminate()).catch(() => {});
+    terminations.add(pending);
+    void pending.then(() => terminations.delete(pending));
   }
-  worker.on("error", fail);
-  worker.on("exit", fail);
-  worker.on("message", ({ id, result }) => {
-    const job = jobs.get(id);
-    if (!job) return;
+  function settle(job, result) {
     clearTimeout(job.timer);
-    jobs.delete(id);
     job.resolve(result);
-  });
+  }
+  function fail(current) {
+    if (generation !== current) return;
+    generation = null;
+    if (current.active) settle(current.active, unavailable);
+    current.active = null;
+    for (const job of waiting.splice(0)) settle(job, unavailable);
+    terminate(current.worker);
+  }
+  function dispatch() {
+    if (closed || !waiting.length || generation?.active) return;
+    if (!generation) {
+      const current = { worker: null, active: null };
+      generation = current;
+      try {
+        current.worker = workerFactory(workerURL, {
+          workerData: { path, key, snapshotTTL },
+          resourceLimits: { maxOldGenerationSizeMb: 128 },
+        });
+        current.worker.on("error", () => fail(current));
+        current.worker.on("exit", () => fail(current));
+        current.worker.on("message", ({ id, result }) => {
+          if (generation !== current || current.active?.id !== id) return;
+          const job = current.active;
+          current.active = null;
+          settle(job, result);
+          dispatch();
+        });
+      } catch {
+        fail(current);
+        return;
+      }
+    }
+    const current = generation;
+    const job = waiting.shift();
+    current.active = job;
+    // Queue wait never consumes a running verifier's execution budget. Total
+    // admission is bounded; each preceding job finishes or fails its watchdog.
+    job.timer = setTimeout(() => fail(current), timeout);
+    try {
+      current.worker.postMessage({ id: job.id, method: job.method, params: job.params });
+    } catch {
+      fail(current);
+    }
+  }
   function submit(method, params) {
     if (closed) return Promise.resolve(unavailable);
-    if (jobs.size >= maxJobs)
+    if (waiting.length + (generation?.active ? 1 : 0) >= maxJobs)
       return Promise.resolve({ version: 1, state: "resource_exhausted" });
-    const id = ++sequence;
     return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        fail();
-        void worker.terminate();
-      }, timeout);
-      jobs.set(id, { resolve, timer });
-      worker.postMessage({ id, method, params });
+      waiting.push({ id: ++sequence, method, params, resolve });
+      dispatch();
     });
   }
   return {
@@ -75,9 +109,13 @@ export function createEvidenceService({
         throw new TypeError("invalid cursor request");
       return submit("continue", { cursor: params.cursor });
     },
-    async close() {
-      fail();
-      await worker.terminate();
+    close() {
+      if (!closing) {
+        closed = true;
+        if (generation) fail(generation);
+        closing = Promise.all([...terminations]).then(() => {});
+      }
+      return closing;
     },
   };
 }

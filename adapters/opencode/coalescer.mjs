@@ -1,3 +1,4 @@
+import { utcMonth } from "../../src/grounding-event.mjs";
 import { environmentValue } from "../../src/environment.mjs";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -125,6 +126,7 @@ export function createEventCoalescer({
   queueMax = DEFAULT_QUEUE_MAX,
   preserveLabels = REQUIRED_PRESERVE_LABELS,
   dlpOverride = true,
+  // Omitted: current UTC month. Empty string: legacy unscoped identity replay.
   retentionEpoch,
   now = () => new Date(),
   setTimeout: schedule = setTimeout,
@@ -137,7 +139,6 @@ export function createEventCoalescer({
   }
 
   const key = Buffer.isBuffer(authKey) ? authKey : DEFAULT_HMAC_KEY;
-  const globalEpoch = retentionEpoch ? `global:${retentionEpoch}` : "global";
   const dlpEnabled = dlpOverride !== false;
   const buckets = new Map();
   // Per-bucket-id monotonic counters backing the `generation` token in
@@ -170,9 +171,11 @@ export function createEventCoalescer({
     timer?.unref?.();
   }
 
-  function createBucket(scope, runID, sessionHMAC, bucket) {
+  function createBucket(scope, runID, sessionHMAC, bucket, epoch) {
+    const globalEpoch = epoch ? `global:${epoch}` : "global";
     return {
       scope,
+      epoch,
       bucket,
       runID: scope === "global" ? hmac(key, "opencode.metrics.run", globalEpoch) : runID,
       sessionHMAC: scope === "global" ? hmac(key, "opencode.metrics.subject", globalEpoch) : sessionHMAC,
@@ -202,7 +205,8 @@ export function createEventCoalescer({
 
   function getGlobalBucket(milliseconds) {
     const bucket = Math.floor(milliseconds / windowMs) * windowMs;
-    const id = `global\0global\0${bucket}`;
+    const epoch = retentionEpoch ?? utcMonth(new Date(milliseconds));
+    const id = `global\0${epoch}\0${bucket}`;
     let aggregate = buckets.get(id);
     if (!aggregate) {
       // Overflow accounting takes precedence over a retained session bucket.
@@ -210,7 +214,24 @@ export function createEventCoalescer({
       // single global counter rather than creating unbounded per-run buckets.
       if (buckets.size >= queueMax) {
         const existing = [...buckets.entries()].find(([, value]) => value.scope === "global");
-        if (existing) return { id: existing[0], aggregate: existing[1] };
+        if (existing) {
+          const [oldID, retained] = existing;
+          if (retained.epoch !== epoch) {
+            // Freeze old-month counts before reusing bounded storage. A pending
+            // event keeps its identity on retry; never fold new counts into it.
+            tryEmit(oldID, retained);
+            // With both an immutable retry and unacknowledged mutable counts,
+            // there is no free bounded slot. Drop new telemetry rather than
+            // attributing it to a previous month.
+            if (hasCounts(retained.summary)) return undefined;
+            buckets.delete(oldID);
+            generations.delete(oldID);
+            Object.assign(retained, createBucket("global", "", "", bucket, epoch));
+            buckets.set(id, retained);
+            return { id, aggregate: retained };
+          }
+          return { id: oldID, aggregate: retained };
+        }
         const session = [...buckets.entries()].find(([, value]) => value.scope === "session");
         if (!session) return undefined;
         buckets.delete(session[0]);
@@ -220,17 +241,18 @@ export function createEventCoalescer({
           // original identity while reusing this bounded bucket for overflow.
           session[1].scope = "global";
           session[1].bucket = bucket;
-          session[1].runID = hmac(key, "opencode.metrics.run", globalEpoch);
-          session[1].sessionHMAC = hmac(key, "opencode.metrics.subject", globalEpoch);
+          session[1].epoch = epoch;
+          session[1].runID = hmac(key, "opencode.metrics.run", epoch ? `global:${epoch}` : "global");
+          session[1].sessionHMAC = hmac(key, "opencode.metrics.subject", epoch ? `global:${epoch}` : "global");
           buckets.set(id, session[1]);
           return { id, aggregate: session[1] };
         }
-        aggregate = createBucket("global", "", "", bucket);
+        aggregate = createBucket("global", "", "", bucket, epoch);
         addSummary(aggregate.summary, session[1].summary);
         buckets.set(id, aggregate);
         return { id, aggregate };
       }
-      aggregate = createBucket("global", "", "", bucket);
+      aggregate = createBucket("global", "", "", bucket, epoch);
       buckets.set(id, aggregate);
     }
     return { id, aggregate };
@@ -293,7 +315,7 @@ export function createEventCoalescer({
         aggregate.scope === "global" ? "global" : aggregate.runID,
         aggregate.bucket,
         snapshot,
-        retentionEpoch,
+        aggregate.scope === "global" ? aggregate.epoch : retentionEpoch,
         generation,
       );
       const entry = Object.freeze({
@@ -380,7 +402,8 @@ export function createEventCoalescer({
         // still on the stack. Its deferred queueFull accounting can replace a
         // synchronously rejected, not-in-flight snapshot before retrying, so
         // both counts are emitted once without reentering tryEmit().
-        if (replacePending && global.aggregate.pending && !global.aggregate.inFlight) {
+        if (replacePending && global.aggregate.pending && !global.aggregate.inFlight &&
+            global.aggregate.pending.event.runID === global.aggregate.runID) {
           addSummary(global.aggregate.summary, global.aggregate.pending.snapshot);
           global.aggregate.pending = undefined;
         }
